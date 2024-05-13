@@ -1,5 +1,6 @@
 import numpy as np
 from p5 import *
+import tkinter as tk
 #### Hasse
 dinamic_congruence = False
 
@@ -50,12 +51,27 @@ def get_colonne(righe):
     """
     return [righe[:p].count(righe[p]) for p in range(len(righe))]
 
-def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y):
+def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 0):
     """
     funzoine per convertire i punti da righe e colonna discretizzate a coordinate nella finestra
     """
-    y = mappa(riga,0,max(righe),min_y+r,max_y-r)
-    x = mappa(colonna,-1,righe.count(riga),min_x-r,max_x+r)
+    if hasse_mode == 0:
+        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
+        x = mappa(colonna,-1,righe.count(riga),min_x-r*2,max_x+r*2)
+        
+    elif hasse_mode == 1:
+        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
+        x = mappa(colonna,-1,max(righe),min_x-r*2,max_x+r*2)
+        
+    elif hasse_mode == 2:
+        max_n_righe = max([righe.count(r) for r in righe])
+        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
+        x = max_x/2 + (colonna - righe.count(riga)//2)*(max_x-min_x)/max_n_righe
+        
+    elif hasse_mode == 3:
+        max_n_righe = max([righe.count(r) for r in righe])
+        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
+        x = max_x/2 + (colonna - righe.count(riga)//2 +((righe.count(riga)+1)%2)*0.5 )*(max_x-min_x)/(max_n_righe)
     return x,y
      
 def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y):
@@ -197,6 +213,45 @@ def mouse_pressed():
             #radius, t_size, dizCoor = get_dati(Pi.cover_matrix,min_x,min_x+500,min_y,min_y+500)
             dizPi[Pi] = get_dati(Pi,min_x,max_x,min_y, max_y)
             rappresenta(Pi)
+
+def hasse_diagram(cover_matrix, shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet'):
+    """
+    Crea una finestra tk-inter con il diagramma di hasse non dinamico di un poset.
+    """
+    if shape:
+        WIDTH,HEIGHT = shape
+    else:
+        WIDTH,HEIGHT = 500,500
+        
+    if radius:
+        RADIUS = radius
+    else:
+        RADIUS = 5 #troverò un metodo migliore
+    righe = get_righe(cover_matrix)
+    colonne = get_colonne(righe)
+    coordinate = [converti(r,c,RADIUS,righe,0,WIDTH,0,HEIGHT,hasse_mode = hasse_mode) for i,(r,c) in enumerate(zip(righe,colonne))]
+
+    #Crea finestra
+    root = tk.Tk()
+    root.geometry(str(WIDTH)+'x'+str(HEIGHT))
+    root.title('PoSet')
+    canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg='white')
+    canvas.pack(anchor=tk.CENTER, expand=True)
+
+    for i, riga in enumerate(cover_matrix):
+        for j, value in enumerate(riga):
+            if value:
+                canvas.create_line(coordinate[i],coordinate[j])
+
+    for x,y in coordinate:
+        canvas.create_oval((x - RADIUS, y - RADIUS),
+                           (x + RADIUS, y + RADIUS),
+                           fill = 'grey')
+
+
+    
+    root.mainloop()
+
 
 #### Congruence Function
 def unisci(a,b,blocchi):
@@ -751,7 +806,6 @@ class PoSet:
         """
         assert len(self) == len(other)
         return PoSet(np.where(self.domination_matrix+other.domination_matrix > 1,1,0))
-
     
     def dual(self):
         """
@@ -881,7 +935,21 @@ class PoSet:
  
         return PoSet.from_function(cuts, lambda a,b: a>=b)
         
+    def hasse(self, shape:tuple = None, radius = None, hasse_mode = 0, title = 'PoSet'):
+        #hasse_diagram(self.cover_matrix)
+        hasse_diagram(self.cover_matrix,shape,radius,hasse_mode,title)    
      
+    def restituiscimi_cover_matrix(self):
+        for i,k in enumerate(self.cover_matrix):
+            if i ==0 :
+                print('[',[int(a) for a in k],',')
+                
+            elif i != len(self) - 1:
+                print([int(a) for a in k],',')
+                
+            else:
+                print([int(a) for a in k],']')
+                
 class Lattice(PoSet):
     ## Personal Function
     def join(self,*args):
@@ -1235,3 +1303,4 @@ class Lattice(PoSet):
     |ConL(C_n) x ConL(C_n)| = |S_n| = 2**n
     
     """
+    
