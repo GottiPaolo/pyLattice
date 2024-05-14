@@ -53,14 +53,14 @@ def get_colonne(righe):
     """
     return [righe[:p].count(righe[p]) for p in range(len(righe))]
 
-def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 0):
+def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     """
     funzoine per convertire i punti da righe e colonna discretizzate a coordinate nella finestra
     """
     if hasse_mode == 0:
         y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
         x = mappa(colonna,-1,righe.count(riga),min_x-r*2,max_x+r*2)
-        
+  
     elif hasse_mode == 1:
         y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
         x = mappa(colonna,-1,max(righe),min_x-r*2,max_x+r*2)
@@ -75,6 +75,13 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 0):
         y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
         x = max_x/2 + (colonna - righe.count(riga)//2 +((righe.count(riga)+1)%2)*0.5 )*(max_x-min_x)/(max_n_righe)
     
+    elif hasse_mode == 4:
+        max_n_righe = max([righe.count(r) for r in righe]) # potevo chiamarlo solo max_col ...
+        space_v = (max_y - min_y) / (4 * (max(righe)-1))
+        space_x = (max_x - min_x) / (4 * (max_n_righe-1))
+        y = mappa(riga,0,max(righe) ,min_y+space_v,max_y-space_v)
+        x = mappa(colonna,-1,righe.count(riga),min_x-space_x,max_x+space_x)
+      
     return x,y
      
 def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y):
@@ -224,7 +231,7 @@ def mouse_pressed():
             rappresenta(Pi)
 
 # tk
-def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode = 2, labels = None, t_size = None):
+def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode = 4, labels = None, t_size = None):
     if radius:
         RADIUS = radius
     else:
@@ -618,7 +625,8 @@ class PoSet:
         elif force:
             return min_up_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
         else: 
-            raise ValueError("join non definito") #devo guardare come si creano gli errori
+            return None
+            # raise ValueError("join non definito")
         
     def meet(self, *args, force = False):
         """
@@ -635,7 +643,8 @@ class PoSet:
         elif force:
             return max_down_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
         else:
-            raise ValueError("meet non definito") #devo guardare come si creano gli errori #devo differenziare tra "non esiste" e "ambiguo"
+            return None
+            #raise ValueError("meet non definito") #devo guardare come si creano gli errori #devo differenziare tra "non esiste" e "ambiguo"
         
     def index_upset(self,*a):
         """
@@ -712,7 +721,8 @@ class PoSet:
         if len(min_up_set) == 1:
             return min_up_set[0]
         else:
-            raise ValueError("join non definito")
+            return None
+            # raise ValueError("join non definito")
         
     def index_meet(self, *args):
         """
@@ -728,7 +738,8 @@ class PoSet:
         if len(max_down_set)==1:
             return max_down_set[0]
         else:
-            raise ValueError("meet non definito")#devo guardare come si creano gli errori #devo differenziare tra "non esiste" e "ambiguo"
+            return None
+            # raise ValueError("meet non definito")#devo guardare come si creano gli errori #devo differenziare tra "non esiste" e "ambiguo"
     
     def is_lattice(self):
         """
@@ -736,10 +747,7 @@ class PoSet:
         """
         for i in range(len(self)):
             for j in range(i+1,len(self)):
-                try:
-                    self.index_join(i,j)
-                    self.index_meet(i,j)
-                except:
+                if  self.index_join(i,j) == None or self.index_meet(i,j) == None:
                     return False
         return True
     
@@ -972,7 +980,7 @@ class PoSet:
  
         return PoSet.from_function(cuts, lambda a,b: a>=b)
         
-    def hasse(*PoSets, grid = (1,1), shape:tuple = None, radius = None, hasse_mode = 0, title = 'PoSet', labels = False, t_size = None):
+    def hasse(*PoSets, grid = (1,1), shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', labels = False, t_size = None):
         
         hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, labels=labels, t_size = t_size)
                     #  shape,radius,hasse_mode,title)   
