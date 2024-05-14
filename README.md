@@ -5,10 +5,7 @@ I'm a statiscs student, so maybe this not the best programming option but you kn
 
 
 ## Structure
-- PoSet object
-    - Domination matrix
-    - Object
-    - Labels
+
 
 - Construct a PoSet
     - main
@@ -78,7 +75,7 @@ To define a PoSet there are other ways:
 
 - From operation beetwen different PoSet (_see later_)
 
-### Operation on a PoSet
+### Operation in a PoSet
 With a PoSet you can compute all this operation (_see example file_)
 - Chek a domination
 - Chek a cover
@@ -89,7 +86,7 @@ With a PoSet you can compute all this operation (_see example file_)
     - If they are not unique and you haven't specify `force = True` or it's not define it return `None`
 _
 
-### Operation beetwen PoSet
+### Operation beetwen PoSets
 With two or more PoSet you can compute this operation
 - Sum: `P + Q`  
     the sum of two (_disjoin_) PoSet $P,Q$ is a PoSet with the union of element as obects and this order rule: $x\unlhd y$ if one and only if one of this occures:
@@ -111,3 +108,26 @@ To get the Hasse diagram of a PoSet you can just call the function `P.hasse()`. 
 - `title`: windows title
 - `labels`: boolean to show or hide labels
 - `t_size`: text size of the labels
+
+Hasse diagram could be ambigous in some situation. Points could allign and looks like there are connection then effictevly there aren't. The best way to improve this problem is to make the graph interactive (later update.)
+
+Know this i possible by using the function `P.rappresenta()` instead  `P.hasse()`. The first one use the `p5` module instead the `tk`. But it could have some serious problem.
+
+## Lattice
+The main differences beetwen PoSet and Lattice is that the last ones are algebric structure. Infact in lattice _join_ and _meet_ are **always** defined. The structure of a Lattice module is the same as the PoSet. The difference beetwen the two are in some function and operation 
+
+### Construct a Lattice
+There are several ways to construct a Lattice.
+Every single one seen for PoSets is still valid. But we have something more:
+- Dedekind completion of a PoSet (not implemented yet)
+- Built-in function for classic Lattice:
+    - `Lattice.from_power_set(n)`: return a Lattice of the powerset of a three elements set order by $\subseteq$
+    - `Lattice.from_chain(n)`: return a Lattice of $n$ element where $x_i\unlhd x_j \Longleftrightarrow x\le j$
+    - `Lattice.from_cw(*numbers)`: return a Lattice construct as the cartesian product of chains. For example `Lattice.from_cw(3,3,2)` returns a Lattice wich is the same of `Lattice.from_chain(3) * Lattice.from_chain(3) * Lattice.from_chain(2)`
+- Moltiplicadion and addition beetwen Lattice return always a Lattice.
+- You can convert a PoSet in a Lattice by the confuction `P.as_lattice()`. Be sure that P is actually a Lattice with the command `P.is_lattice()`.
+- Be very careful to construct a Lattice. The program never check thata the domination matrix is actually the domination matrix of a Lattice.
+
+
+### Congruences
+One of the most important properties of a Lattice is the Congruence.

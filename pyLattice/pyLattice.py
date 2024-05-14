@@ -77,11 +77,17 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     
     elif hasse_mode == 4:
         max_n_righe = max([righe.count(r) for r in righe]) # potevo chiamarlo solo max_col ...
-        space_v = (max_y - min_y) / (4 * (max(righe)-1))
+        
         if max_n_righe == 1: #Catene gives problem
             space_x = 0
         else:
             space_x = (max_x - min_x) / (4 * (max_n_righe-1))
+        
+        if max(righe) == 0:
+            space_v = 0
+        else:
+            space_v = (max_y - min_y) / (4 * (max(righe)))
+            
         y = mappa(riga,0,max(righe) ,min_y+space_v,max_y-space_v)
         x = mappa(colonna,-1,righe.count(riga),min_x-space_x,max_x+space_x)
       
@@ -112,7 +118,6 @@ def PoSet_to_show(*PoSet):
         Griglia = ((len(PoSet)+1)//2 , 2)
     else: 
         Griglia = (len(PoSet) , 1)
-
         
     WIDTH, HEIGHT = 500,500
 
@@ -1306,7 +1311,7 @@ class Lattice(PoSet):
     
     def from_cw(*lista):
         """
-        Componente wise
+        Componente wise (chain product)
         """
         return Lattice.from_function(genera_cw(lista),component_wise)
     
