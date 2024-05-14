@@ -5,36 +5,6 @@ I'm a statiscs student, so maybe this not the best programming option but you kn
 
 
 ## Structure
-
-
-- Construct a PoSet
-    - main
-    - from cover matrix
-    - from function
-    - operation beetwen PoSet
-
-- Rappresentation
-    - hasse: 
-
-- Action on PoSet
-    - join
-    - meet
-    - ...
-    - Dedekind completetion
-
-- Lattice object
-    - Differences beetwen poset
-
-- Construct a Lattice
-    - main
-    - Special Lattice
-        - Chain
-        - Powerset:
-            `pl.Lattice.from_power_set(3).hasse(labels = True, shape = (400,300))`
-            will return:
-        - "cw"
-    - from function
-
 - Congruences stuff!
     - Congruence structure
     - Calculate a Con(a,b)
@@ -75,7 +45,7 @@ To define a PoSet there are other ways:
 
 - From operation beetwen different PoSet (_see later_)
 
-### Operation in a PoSet
+### Operation on a PoSet
 With a PoSet you can compute all this operation (_see example file_)
 - Chek a domination
 - Chek a cover
