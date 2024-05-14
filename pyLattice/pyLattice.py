@@ -78,7 +78,10 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     elif hasse_mode == 4:
         max_n_righe = max([righe.count(r) for r in righe]) # potevo chiamarlo solo max_col ...
         space_v = (max_y - min_y) / (4 * (max(righe)-1))
-        space_x = (max_x - min_x) / (4 * (max_n_righe-1))
+        if max_n_righe == 1: #Catene gives problem
+            space_x = 0
+        else:
+            space_x = (max_x - min_x) / (4 * (max_n_righe-1))
         y = mappa(riga,0,max(righe) ,min_y+space_v,max_y-space_v)
         x = mappa(colonna,-1,righe.count(riga),min_x-space_x,max_x+space_x)
       
@@ -241,7 +244,7 @@ def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode =
         fontSize = t_size
     else:
         fontSize = 10
-        
+               
     righe = get_righe(cover_matrix)
     colonne = get_colonne(righe)
     coordinate = [converti(r,c,RADIUS,righe,*rect,hasse_mode = hasse_mode) for i,(r,c) in enumerate(zip(righe,colonne))]
@@ -261,7 +264,7 @@ def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode =
 
 
         
-def hasse_diagram(PoSets , grid = (1,1), shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet', labels = False, t_size = None):
+def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet', labels = False, t_size = None):
     """
     Crea una finestra tk-inter con il diagramma di hasse non dinamico di un poset.
     """
@@ -270,7 +273,8 @@ def hasse_diagram(PoSets , grid = (1,1), shape:tuple = None, radius = None, hass
     else:
         WIDTH,HEIGHT = 500,500
         
-
+    if not grid:
+        grid = (len(PoSets),1)
     #Crea finestra
     root = tk.Tk()
     root.geometry(str(WIDTH)+'x'+str(HEIGHT))
@@ -622,6 +626,10 @@ class PoSet:
         min_up_set = self.min_sub_set(self.upset(*args))
         if len(min_up_set) == 1:
             return min_up_set[0]
+        
+        elif len(min_up_set) == 0:
+            return None
+        
         elif force:
             return min_up_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
         else: 
@@ -640,6 +648,8 @@ class PoSet:
         max_down_set = self.max_sub_set(self.downset(*args))
         if len(max_down_set)==1:
             return max_down_set[0]
+        if len(max_down_set)==0:
+            return None
         elif force:
             return max_down_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
         else:
@@ -980,7 +990,7 @@ class PoSet:
  
         return PoSet.from_function(cuts, lambda a,b: a>=b)
         
-    def hasse(*PoSets, grid = (1,1), shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', labels = False, t_size = None):
+    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', labels = False, t_size = None):
         
         hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, labels=labels, t_size = t_size)
                     #  shape,radius,hasse_mode,title)   

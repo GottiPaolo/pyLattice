@@ -1,6 +1,7 @@
 # pyLattice
 
-pyLattice is a python library to menage Lattice and PoSet (Partially order set) in python.
+pyLattice is a python library to menage Lattice and PoSet.
+I'm a statiscs student, so maybe this not the best programming option but you know
 
 
 ## Structure
@@ -17,7 +18,6 @@ pyLattice is a python library to menage Lattice and PoSet (Partially order set) 
 
 - Rappresentation
     - hasse: 
-    ![](img/hasse.png)
 
 - Action on PoSet
     - join
@@ -34,7 +34,7 @@ pyLattice is a python library to menage Lattice and PoSet (Partially order set) 
         - Chain
         - Powerset:
             `pl.Lattice.from_power_set(3).hasse(labels = True, shape = (400,300))`
-            will return: ![](img/hasse_powerset_3.png)
+            will return:
         - "cw"
     - from function
 
@@ -48,9 +48,9 @@ pyLattice is a python library to menage Lattice and PoSet (Partially order set) 
 ## PoSet
 A PoSet object has just four different attributes:
 - `domination_matrix`: a domination matrix, $Z$ is a squared matrix $n\times n$ where $n$ is the number of element in the PoSet. 
-    $$Z_{ij} = 1 \Longleftrightarrow x_i \unlhd x_j\space 0 \space \text{otherwise} $$
+    $$Z_{ij} = 1 \Longleftrightarrow x_i \unlhd x_j;\space 0 \space \text{otherwise} $$
 - `cover_matrix`: a cover matrix, $M$,  is a squared matrix $n\times n$ where $n$ is the number of element in the PoSet. 
-    $$M_{ij} = 1 \Longleftrightarrow x_i \prec x_j\space 0 \space \text{otherwise} $$
+    $$M_{ij} = 1 \Longleftrightarrow x_i \prec x_j;\space 0 \space \text{otherwise} $$
 - `obj`: a list of the object in the PoSet
 - `labels`: a list of labels to show in the rappresentation of the PoSet.
 
@@ -74,7 +74,7 @@ To define a PoSet there are other ways:
     `P = PoSet.from_function(list(range(1,20)), lambda a,b: a%b == 0)`
     You need to pass to elemnt:
     - `X`: Element to compare
-    - `f`: function to compare. This function should be to the form: $f(a,b) = True \Leftrightarrow a\unlhd b\space False \space\text{otehrwise}$  
+    - `f`: function to compare. This function should be to the form: $f(a,b) = True \Leftrightarrow a\unlhd b\space; False \space\text{otehrwise}$  
 
 - From operation beetwen different PoSet (_see later_)
 
@@ -91,6 +91,23 @@ _
 
 ### Operation beetwen PoSet
 With two or more PoSet you can compute this operation
-- Cartesian product: 
-    [...]
-- sum
+- Sum: `P + Q`  
+    the sum of two (_disjoin_) PoSet $P,Q$ is a PoSet with the union of element as obects and this order rule: $x\unlhd y$ if one and only if one of this occures:
+    - $x,y \in P$ and $x\unlhd_P y$
+    - $x,y \in Q$ and $x\unlhd_Q y$
+    - $x \in P$ and $y\in Q$
+
+- Cartesian product: `P * Q`  
+    the cartesian product $P_1 \times P_2$ is an ordered set where the object is the cartesian product of the objec in $P_1,P_2$ ordered by : $(x_1,x_2)\unlhd (y_1,y_2)\Leftrightarrow x_1 \unlhd_1 y_1 \vee x_2 \unlhd_2 y_2  $
+
+### Hasse diagram
+You can represent a PoSet by a Hasse diagram.  
+To get the Hasse diagram of a PoSet you can just call the function `P.hasse()`. Eventually you can plot multiple hasse diagram.  
+`P.hasse(Q,H)` will show a window with all the hasse diagram of $P$, $Q$ adn $H$. You can specify these parameters
+- `grid`: tuples of two integers rapresenting the grid for plot multiple hasse. Default is all poset in a single line
+- `shape`: tuples of two integers rapresenting the pixels dimention of window, default 500x500
+- `radius`: radius of the circles, default 5
+- `hasse_mode`: for know you can choose beetwen 5 different modes for an hasse diagram. they're codes just by progressive numbers. (I'm going to implemente more ones in the future)
+- `title`: windows title
+- `labels`: boolean to show or hide labels
+- `t_size`: text size of the labels
