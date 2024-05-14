@@ -17,9 +17,11 @@ def mappa(x,a,b,A,B):
 def get_riga_punto(cover_matrix,p,righe):
     if righe[p]:
         return righe[p]
+    
     elif sum(cover_matrix[p]) == 0:
         righe[p] = 0
         return 0
+    
     else:
         riga_temp = 0
         for i in range(len(cover_matrix)):
@@ -72,6 +74,7 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 0):
         max_n_righe = max([righe.count(r) for r in righe])
         y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
         x = max_x/2 + (colonna - righe.count(riga)//2 +((righe.count(riga)+1)%2)*0.5 )*(max_x-min_x)/(max_n_righe)
+    
     return x,y
      
 def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y):
@@ -83,6 +86,8 @@ def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y):
     for i,(riga,colonna) in enumerate(zip(righe,colonne)):
         dizCoor[i] = converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y)
     return dizCoor
+
+## p5
 
 def PoSet_to_show(*PoSet):
     """
@@ -110,6 +115,10 @@ def get_dati(Pi,min_x,max_x,min_y,max_y):
     radius = min(((max_y-min_y))/(max(righe)+1),(max_x-min_x)/(max(colonne)+1))
     radius *= 0.5 * 0.8
     t_size = radius *0.5 # *0.3
+    if radius > 10:
+        radius = 20
+    if t_size < 10:
+        t_size = 10
     dizCoor = get_coor(righe,colonne,radius,min_x,max_x,min_y,max_y)
     return radius, t_size, dizCoor
 
@@ -214,7 +223,38 @@ def mouse_pressed():
             dizPi[Pi] = get_dati(Pi,min_x,max_x,min_y, max_y)
             rappresenta(Pi)
 
-def hasse_diagram(cover_matrix, shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet'):
+# tk
+def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode = 2, labels = None, t_size = None):
+    if radius:
+        RADIUS = radius
+    else:
+        RADIUS = 5 #troverò un metodo migliore
+        
+    if t_size:
+        fontSize = t_size
+    else:
+        fontSize = 10
+        
+    righe = get_righe(cover_matrix)
+    colonne = get_colonne(righe)
+    coordinate = [converti(r,c,RADIUS,righe,*rect,hasse_mode = hasse_mode) for i,(r,c) in enumerate(zip(righe,colonne))]
+
+    for i, riga in enumerate(cover_matrix):
+        for j, value in enumerate(riga):
+            if value:
+                canvas.create_line(coordinate[i],coordinate[j])
+
+    for i,(x,y) in enumerate(coordinate):
+        canvas.create_oval((x - RADIUS, y - RADIUS),
+                           (x + RADIUS, y + RADIUS),
+                           fill = 'grey')
+        if labels:
+            canvas.create_text(x,y + RADIUS*2 + fontSize/2 ,font=f"Times {fontSize}",
+                            text=labels[i])
+
+
+        
+def hasse_diagram(PoSets , grid = (1,1), shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet', labels = False, t_size = None):
     """
     Crea una finestra tk-inter con il diagramma di hasse non dinamico di un poset.
     """
@@ -223,30 +263,27 @@ def hasse_diagram(cover_matrix, shape:tuple = None, radius = None, hasse_mode = 
     else:
         WIDTH,HEIGHT = 500,500
         
-    if radius:
-        RADIUS = radius
-    else:
-        RADIUS = 5 #troverò un metodo migliore
-    righe = get_righe(cover_matrix)
-    colonne = get_colonne(righe)
-    coordinate = [converti(r,c,RADIUS,righe,0,WIDTH,0,HEIGHT,hasse_mode = hasse_mode) for i,(r,c) in enumerate(zip(righe,colonne))]
 
     #Crea finestra
     root = tk.Tk()
     root.geometry(str(WIDTH)+'x'+str(HEIGHT))
-    root.title('PoSet')
+    root.title(title)
     canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg='white')
     canvas.pack(anchor=tk.CENTER, expand=True)
+    
+    for i,P in enumerate(PoSets):
+        riga = i // grid[0]
+        col  = i % grid[0]
+        if labels:
+            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[0], (col  + 1) * WIDTH / grid[0],
+                                                            riga * HEIGHT / grid[1], (riga + 1) * HEIGHT / grid[1]), 
+                             radius = radius, hasse_mode = hasse_mode, labels = P.labels, t_size=t_size)
+        else:
+            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[0], (col  + 1) * WIDTH / grid[0],
+                                                            riga * HEIGHT / grid[1], (riga + 1) * HEIGHT / grid[1]), 
+                             radius = radius, hasse_mode = hasse_mode, t_size=t_size)
 
-    for i, riga in enumerate(cover_matrix):
-        for j, value in enumerate(riga):
-            if value:
-                canvas.create_line(coordinate[i],coordinate[j])
 
-    for x,y in coordinate:
-        canvas.create_oval((x - RADIUS, y - RADIUS),
-                           (x + RADIUS, y + RADIUS),
-                           fill = 'grey')
 
 
     
@@ -935,11 +972,15 @@ class PoSet:
  
         return PoSet.from_function(cuts, lambda a,b: a>=b)
         
-    def hasse(self, shape:tuple = None, radius = None, hasse_mode = 0, title = 'PoSet'):
-        #hasse_diagram(self.cover_matrix)
-        hasse_diagram(self.cover_matrix,shape,radius,hasse_mode,title)    
+    def hasse(*PoSets, grid = (1,1), shape:tuple = None, radius = None, hasse_mode = 0, title = 'PoSet', labels = False, t_size = None):
+        
+        hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, labels=labels, t_size = t_size)
+                    #  shape,radius,hasse_mode,title)   
+        # assert grid[0] * grid[1] >= len(self)
+        # for P in PoSets:
+        #     hasse_diagram(P.cover_matrix,shape,radius,hasse_mode,title)    
      
-    def restituiscimi_cover_matrix(self):
+    def restituiscimi_cover_matrix(self) -> None:
         for i,k in enumerate(self.cover_matrix):
             if i ==0 :
                 print('[',[int(a) for a in k],',')
@@ -1259,7 +1300,7 @@ class Lattice(PoSet):
     2. [x] Implementare le funzioni per estrarre gli elementi meet-dense e join-dense
         Dalla teoria risulta che preso a in L: a\in J(L) <==> \exists ! b: b\prec a
         Quindi in realtà se faccio scorrere la matrice di copertura e sommo righe / colonne ottengo meet dense e join dense quando le somme fanno 1 giusto??
-    3. [ ] Studiare la rappresentazione. p5 rimane l'opzione migliore come libreria, 
+    3. [x] Studiare la rappresentazione. p5 rimane l'opzione migliore come libreria, 
         devo studiare come differenziare diversi Canvas, separare le funzioni etc.
     4. [x] Calcolare il duale: Cosa semplice e veloce in realtà
     5. [ ] Migliorare l'aspetto grafico:
