@@ -90,6 +90,9 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
             
         y = mappa(riga,0,max(righe) ,min_y+space_v,max_y-space_v)
         x = mappa(colonna,-1,righe.count(riga),min_x-space_x,max_x+space_x)
+    
+    else:
+        raise ValueError('Hasse mode non definita')
       
     return x,y
      
@@ -249,6 +252,12 @@ def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode =
         fontSize = t_size
     else:
         fontSize = 10
+    
+    # Lo farò ma quando trovero un modo intelligente. Non a cazzo di cane
+    # if not colors:
+    #     colors = ['grey' for i in cover_matrix]
+    # else:
+    #     colors = [("grey", "yellow", "cyan", "magenta", "red", "blue", "black")[i] for i in colors]
                
     righe = get_righe(cover_matrix)
     colonne = get_colonne(righe)
@@ -266,10 +275,8 @@ def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode =
         if labels:
             canvas.create_text(x,y + RADIUS*2 + fontSize/2 ,font=f"Times {fontSize}",
                             text=labels[i])
-
-
         
-def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet', labels = False, t_size = None):
+def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet', labels = False, t_size = None, save_ps = False):
     """
     Crea una finestra tk-inter con il diagramma di hasse non dinamico di un poset.
     """
@@ -299,12 +306,10 @@ def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse
                                                             riga * HEIGHT / grid[1], (riga + 1) * HEIGHT / grid[1]), 
                              radius = radius, hasse_mode = hasse_mode, t_size=t_size)
 
-
-
-
+    if save_ps:
+        canvas.postscript(file = f'{title}.ps',colormode = 'color')
     
     root.mainloop()
-
 
 #### Congruence Function
 def unisci(a,b,blocchi):
@@ -665,6 +670,8 @@ class PoSet:
         """
         Identica alla funzione upset ma invece che richiedere un elemento del poset chiede solo il suo indice
         """
+        if len(a) == 0:
+            return {i for i in range(len(self))} # l'upset di un set vuoto è tutto
         if len(a) == 1: 
             upset = {i for i,r in enumerate(self.domination_matrix[a[0]]) if r }
             return upset
@@ -675,6 +682,10 @@ class PoSet:
         """
         Identica alla funzione downset ma invece che richiedere un elemento del poset chiede solo il suo indice
         """
+
+        if len(a) == 0:
+            return {i for i in range(len(self))} # il down set di un set vuoto è tutto
+        
         if len(a) == 1:
             downset = {i for i,r in enumerate(self.domination_matrix) if r[a[0]]}
             return downset
@@ -774,6 +785,7 @@ class PoSet:
         extent,intent,labelsO, labelsA= fca(self.domination_matrix)
         labelsO = [self.labels[x[0]] if len(x)==1 else '' for x in labelsO]
         return Lattice.from_function(list(zip(extent,intent)),lambda x,y: set(x[0])<=set(y[0]),labelsO)
+        #return Lattice.from_function(list(zip(extent,intent)),lambda x,y: set(x[0])<=set(y[0]),intent)
        
     def isomorphic(self,other) -> bool:
         """
@@ -867,6 +879,13 @@ class PoSet:
         assert len(self) == len(other)
         return PoSet(np.where(self.domination_matrix+other.domination_matrix > 1,1,0))
     
+    def __neg__(self):
+        """
+        Non particolarmente essenziale (anzi rischia di fare danni) ma così posso calcolare il duale di P come -P
+        Nonostatne ciò Q - P rimane quello che ho definito, non diventa: Q + (-P) = Q + P^d
+        """
+        return self.dual()
+    
     def dual(self):
         """
         Restituisce il duale di un reticolo (semplicemente prendendo la trasposta della matrice di dominanze)
@@ -956,48 +975,29 @@ class PoSet:
         Potrei ottimizzarlo prendendo un sottoinsieme della matrice di dominanze invece che utilizzando una funzione, ma non è urgnete
         """
         return PoSet.from_function(sub_set,lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
-        
+          
     def dedekind_completetion(self):
         """
-        NON FUNZIONA, Meglio non l'ho ancora implementato, ma a breve, promesso
-        """
-        # Inizializza il set di tutti i cut del poset
-        # Proviamo in maniera ingenua
+        Implementanto in versione stupida O(2**n)
+        per ogni A \subset P, ovver per ogni A \in Poweset(P)
+        calcoliamo A^u^l e poi ordiniamo i risultati per inclusione
+        Dovrò capire la versione step wise
+        """   
         cuts = []
-        for i in range(len(self)):
-            index = 0
-            cut_find = False
-            down_set = {i}
-            up_set = self.index_upset(i)
+        for i in range(2**len(self)):
+            # questo funziona print(i,[j for j in range(len(self)) if (i//2**j) %2 == 1])
+            # SubSet = [j for j in range(len(self)) if (i//2**j) %2 == 1]
+            # up_set = self.index_upset(*SubSet)
+            # closed = self.index_downset(*list(up_set))
+            closed = self.index_downset(*list(self.index_upset(*[j for j in range(len(self)) if (i//2**j) %2 == 1])))
 
-            while not cut_find:
-                if index % 2 == 0:
-                    if up_set == {}:
-                        down_set_ip = set(range(len(self)))
-                    else:
-                        down_set_ip = self.index_downset(*list(up_set))
-                    if down_set == down_set_ip:
-                        cut_find = True
-                    down_set = down_set_ip
-                    
-                else:
-                    if down_set == {}:
-                        up_set_ip = set(range(len(self)))
-                    else:
-                        up_set_ip = self.index_upset(*list(down_set))
-                    if up_set == up_set_ip:
-                        cut_find = True
-                    up_set = up_set_ip
-                    
-                    index +=1
-            if up_set not in cuts:     
-                cuts.append(up_set)
- 
-        return PoSet.from_function(cuts, lambda a,b: a>=b)
+            if closed not in cuts:
+                cuts.append(closed)
+        return Lattice.from_function(cuts,lambda a,b: a<= b)
+
+    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', labels = False, t_size = None, save_ps = False):
         
-    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', labels = False, t_size = None):
-        
-        hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, labels=labels, t_size = t_size)
+        hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, labels=labels, t_size = t_size, save_ps = save_ps)
                     #  shape,radius,hasse_mode,title)   
         # assert grid[0] * grid[1] >= len(self)
         # for P in PoSets:
@@ -1098,6 +1098,24 @@ class Lattice(PoSet):
         """
         return [i for i in range(len(self))  if sum(np.transpose(self.cover_matrix)[i]) == 1]
     
+    def get_one_index(self):
+        """
+        restituisce l'indice del "1" ovvero l'elemtno che domina tutti, o analogamente 
+        non è dominato da nessunuo escluso se stesso
+        """
+        for i in range(len(self)):
+            if sum(self.domination_matrix[i]) == 1: # dominato solo da un elemento (se stesso)
+                return i
+    
+    def get_zero_index(self):
+        """
+        restituisce l'indice dello "0" ovvero l'elemtno che è dominato tutti, o analogamente 
+        non domina da nessunuo escluso se stesso
+        """
+        for i in range(len(self)):
+            if sum(self.domination_matrix[i]) == len(self): #dominato da tutti
+                return i
+    
     def from_function(X,f,labels = None):
         domination_matrix = np.eye(len(X)) # Assumo che la funzione che mi viene passata sia giusta e quindi parto dall'indetità e skippo i valori uguali
         for i,a in enumerate(X):
@@ -1144,7 +1162,19 @@ class Lattice(PoSet):
         A = super().__add__(other)
         A.as_lattice()
         return A
-
+    
+    def glued_sum(self,other):
+        """
+        Calcola la glued-sum di due reticoli
+        La glued sum coincide con la somma classica ma vengono accorpati il maggiore assoluto del primo reticolo 
+        con il minore assoluto del secondo
+        
+        In teoria può essere calcolata anche per i PoSet ma bisogna verificare che esistano minimo e massimo nei rispettivi
+        """
+        top = self.get_one_index()
+        d = [[ self.domination_matrix[i][j] for j in range(len(self)) if j!= top] for i in range(len(self)) if i!=top]
+        return PoSet(d,[self.obj[i] for i in range(len(self)) if i!= top], [self.labels[i] for i in range(len(self)) if i!= top] ) + other
+        
     #### Congruence Staff
     def apply_congruence(self,congruence):
         """
@@ -1347,7 +1377,14 @@ class Lattice(PoSet):
                 Ovvero, esiste un modo migliore che prendere tutti i suoi possibili sottoinsiemi?
                 L'algoritmo che ho studiato ora funziona
                 
-    6. [ ] Implementare Dedekind Completetion
+    6. [x] Implementare Dedekind Completetion
+        - [ ]  impmlementarlo stepwise invece che stupi one...
+        
+    7. definire altre operazioni tra PoSet e Lattices.
+        - [ ] PoSet: glued sum verificando che abbiano massimo e minimo
+        - [ ] test di verifica di isomorfismi ed omomorfismi (sarebbe carino sfruttare funzioni built in come __is__) 
+        - [ ] Potrebbe essere carino (ma non particolarmente essenziale) definire __floordiv__ per calcolare Reticoli quoziente: L // theta = ...
+        
             
             
     Problema teorico:
@@ -1365,6 +1402,9 @@ class Lattice(PoSet):
     |ConL(C_n)| = |S_n| = 2**n
     
     |ConL(C_n) x ConL(C_n)| = |S_n| = 2**n
+    
+    Devo lavorare solo ad un interfaccia grafica!
+    In maniera intelligente, su un file nuovo, una nuova classe
     
     """
     
