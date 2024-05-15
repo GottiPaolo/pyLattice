@@ -1,5 +1,5 @@
 import numpy as np
-from p5 import *
+import p5
 import tkinter as tk
 #### Hasse
 dinamic_congruence = False
@@ -58,6 +58,7 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     funzoine per convertire i punti da righe e colonna discretizzate a coordinate nella finestra
     """
     if hasse_mode == 0:
+        
         y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
         x = mappa(colonna,-1,righe.count(riga),min_x-r*2,max_x+r*2)
   
@@ -76,10 +77,10 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
         x = max_x/2 + (colonna - righe.count(riga)//2 +((righe.count(riga)+1)%2)*0.5 )*(max_x-min_x)/(max_n_righe)
     
     elif hasse_mode == 4:
-        max_n_righe = max([righe.count(r) for r in righe]) # potevo chiamarlo solo max_col ...
+        max_n_righe = max([righe.count(r) for r in righe]) # numero massimo di elementi in una riga
         
-        if max_n_righe == 1: #Catene gives problem
-            space_x = 0
+        if max_n_righe == 1: 
+            space_x =0  #se c'è al massimo un solo elemento per riga il gap è 0
         else:
             space_x = (max_x - min_x) / (4 * (max_n_righe-1))
         
@@ -90,23 +91,58 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
             
         y = mappa(riga,0,max(righe) ,min_y+space_v,max_y-space_v)
         x = mappa(colonna,-1,righe.count(riga),min_x-space_x,max_x+space_x)
-    
+        
+    elif hasse_mode == 5:
+        """
+        Squadro i margini tenendo il maggiore
+        """
+        max_n_righe = max([righe.count(r) for r in righe]) # numero massimo di elementi in una riga
+        
+        if max_n_righe == 1: 
+            space_x =0  #se c'è al massimo un solo elemento per riga il gap è 0
+        else:
+            space_x = (max_x - min_x) / (4 * (max_n_righe-1))
+        
+        if max(righe) == 0:
+            space_y = 0
+        else:
+            space_y = (max_y - min_y) / (4 * (max(righe)))
+            
+        gap = max(space_x, space_y)
+        y = mappa(riga,0,max(righe,),min_y+gap,max_y-gap)
+        x = mappa(colonna,-1,righe.count(riga),min_x-gap,max_x+gap)
+        
+    elif hasse_mode == 6:
+        """
+        Obiettivo, tenere una griglia quadrata per i calcoli matematici me li segnerò
+        """
+        # Se assumo che il riquadro è sempre quadrato, cosa per ora vera
+        n_points = max(max([righe.count(r) for r in righe]),(max(righe) + 1))# 
+        gap =  (max_x - min_x) / n_points
+        # gap_x = (max_x - min_x) / max([righe.count(r) for r in righe]) #(cons# idero come margine gap/2)
+        # gap_y = (max_y - min_y) / (max(righe) + 1)
+        
+        
+        y = min_y + gap*0.5 + riga*gap + (n_points - (max(righe) + 1)) *0.5* gap # devo centrare y se vince x , così come centro x se vince y
+        x = min_x + gap * 0.5 + colonna*gap + (n_points - righe.count(riga)) *0.5* gap# + qualcosa legato a righe.count(riga) e max([righe.count(r) for r in righe])
+   
+
     else:
         raise ValueError('Hasse mode non definita')
       
     return x,y
      
-def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y):
+## p5
+
+def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y,hasse_mode = 4):
     """
     Dai dati elementari di un PoSet (righe, colonne e margini della finestra)
     restituiscee un dizionario con le coordinate dei punti
     """
     dizCoor = {}
     for i,(riga,colonna) in enumerate(zip(righe,colonne)):
-        dizCoor[i] = converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y)
+        dizCoor[i] = converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode=hasse_mode)
     return dizCoor
-
-## p5
 
 def PoSet_to_show(*PoSet):
     """
@@ -149,33 +185,36 @@ def rappresenta(Pi):
         for b in range(len(Pi.cover_matrix)):
             if Pi.cover_matrix[p][b]:
                 if not Pi.blocchi:
-                    stroke(255)
-                    strokeWeight(1)
-                    line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
+                    p5.stroke(0)
+                    p5.strokeWeight(1)
+                    p5.line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
                 elif Pi.blocchi[p] == Pi.blocchi[b]:
-                    stroke(255,0,0)
-                    strokeWeight(3)
-                    line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
+                    p5.stroke(255,0,0)
+                    p5.strokeWeight(3)
+                    p5.line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
+                    p5.strokeWeight(1)
                 else:
-                    stroke(255)
-                    strokeWeight(1)
-                    line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
+                    p5.stroke(0)
+                    p5.strokeWeight(1)
+                    p5.line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
                     
     for p in range(len(Pi.cover_matrix)):
-        noStroke()
-        fill(170)
-        ellipse(dizCoor[p][0],dizCoor[p][1],radius,radius)
-        fill(220,0,0)
-        text_size(t_size)
-        text(Pi.labels[p],dizCoor[p][0]-(len(Pi.labels[p])//4*t_size),dizCoor[p][1]-radius/2)
+        #p5.noStroke()
+        p5.stroke(0)
+        p5.fill(130)
+        p5.ellipse(dizCoor[p][0],dizCoor[p][1],radius,radius)
+        p5.fill(0)
+        p5.text_size(t_size)
+        p5.text(Pi.labels[p],dizCoor[p][0]-(len(Pi.labels[p])//2*t_size*0.5),dizCoor[p][1]+radius+t_size/2)
 
 def setup():
     """
     Funzione di base di p5 dei calcoli da fare per generare la finestra
     """
+    print('PARTITI')
     global dizPi, selected, WIDTH, HEIGHT
-    background(0)
-    size(WIDTH, HEIGHT)
+    p5.background(255)
+    p5.size(WIDTH, HEIGHT)
     dizPi = {}
     selected = False
     for i,Pi in enumerate(PoSets):    
@@ -192,28 +231,28 @@ def draw():
     """
     Funzione di base di p5 che defiinisce il loop dell'animazione
     """
-    background(0)
+    p5.background(255)
     for Pi in PoSets:
         rappresenta(Pi)
 
     ### MUOVI IN MANIERA DINAMICA
-    if mouse_is_pressed:
+    if mouse_pressed():
         griglia_x = mouse_x // (width / Griglia[0])
         griglia_y = mouse_y // (height / Griglia[1])
         indice = int(griglia_y*Griglia[0] + griglia_x)
         for p in range(len(dizPi[PoSets[indice]][2])):
-            if dist((mouse_x,mouse_y),dizPi[PoSets[indice]][2][p]) * 2< dizPi[PoSets[indice]][0]:
-                noFill()
-                strokeWeight(4)
-                stroke(255,0,0)
-                ellipse(*dizPi[PoSets[indice]][2][p], 
+            if p5.dist((mouse_x,mouse_y),dizPi[PoSets[indice]][2][p]) * 2< dizPi[PoSets[indice]][0]:
+                p5.noFill()
+                p5.strokeWeight(4)
+                p5.stroke(255,0,0)
+                p5.ellipse(*dizPi[PoSets[indice]][2][p], 
                         dizPi[PoSets[indice]][0],dizPi[PoSets[indice]][0])
                 dizPi[PoSets[indice]][2][p] = (mouse_x,dizPi[PoSets[indice]][2][p][1])
                 break
         
     if dinamic_congruence:
         for i,c in enumerate(PoSets[1]):
-            if dist((mouse_x,mouse_y),dizPi[PoSets[1]][2][i]) * 2 < dizPi[PoSets[1]][0]:
+            if p5.dist((mouse_x,mouse_y),dizPi[PoSets[1]][2][i]) * 2 < dizPi[PoSets[1]][0]:
                 PoSets[0].blocchi = c #Questa struttura non mi piace, devo separare la rappresentazione dalla variabile.
                 #i blocchi non devono essere un'entità del PoSet!
       
@@ -223,7 +262,7 @@ def mouse_pressed():
     la uso solo per applicare le congruenze
     """
     global PoSets, WIDTH, HEIGHT, dizPi, selected
-    if dinamic_congruence and mouse_button == RIGHT and PoSets[0].blocchi:
+    if dinamic_congruence and mouse_button == p5.RIGHT and PoSets[0].blocchi:
         Pi = PoSets[0].apply_congruence(PoSets[0].blocchi)
         ConL = Pi.CongruenceLattice()
         PoSets = (Pi, ConL)
@@ -731,7 +770,7 @@ class PoSet:
         """
         PoSet_to_show(*PoSets)
         #get_dati(self.cover_matrix,list(map(lambda x: str(x),self.obj)))
-        run(renderer="skia")
+        p5.run(renderer="skia",sketch_setup=setup,sketch_draw=draw)
         
     def index_join(self,*args):
         """
@@ -845,7 +884,6 @@ class PoSet:
         self_  = [s if type(s) == tuple else (s,) for s in self]
         other_ = [s if type(s) == tuple else (s,) for s in other]
         x = [s + o for s in self_ for o in other_]
-
         return PoSet(matrice,x)
     
     def __add__(self,other):
@@ -976,12 +1014,14 @@ class PoSet:
         """
         return PoSet.from_function(sub_set,lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
           
-    def dedekind_completetion(self):
+    def dedekind_completetion(self, nice_labels = False):
         """
         Implementanto in versione stupida O(2**n)
         per ogni A \subset P, ovver per ogni A \in Poweset(P)
         calcoliamo A^u^l e poi ordiniamo i risultati per inclusione
         Dovrò capire la versione step wise
+        
+        Se nice_labels è True, come labels vengono utilizzate quelle del poset di partenza, esclusi i punti nuovi
         """   
         cuts = []
         for i in range(2**len(self)):
@@ -993,6 +1033,14 @@ class PoSet:
 
             if closed not in cuts:
                 cuts.append(closed)
+        if nice_labels:
+            labels = ['' for c in cuts]
+            for j in range(len(self)):
+                sub = self.index_downset(j)
+                for i,c in enumerate(cuts):
+                    if c == sub:
+                        labels[i] = self.labels[j]
+            return Lattice.from_function(cuts,lambda a,b: a<= b, labels=labels)
         return Lattice.from_function(cuts,lambda a,b: a<= b)
 
     def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', labels = False, t_size = None, save_ps = False):
@@ -1013,7 +1061,11 @@ class PoSet:
                 
             else:
                 print([int(a) for a in k],']')
-                
+      
+    def _simple(self):
+        self.obj = [str(i) for i in range(len(self))]
+        self.labels = [str(i) for i in range(len(self))]
+        
 class Lattice(PoSet):
     ## Personal Function
     def join(self,*args):

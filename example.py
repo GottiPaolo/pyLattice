@@ -1,5 +1,42 @@
 import pyLattice.pyLattice as pl
 
+
+## Dedekind completition of a PoSet
+c =[
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+[0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0]
+]
+L = pl.Lattice.from_power_set(3) * pl.Lattice.from_chain(2)
+L.obj = [str(i) for i in range(len(L))]
+L.labels = [str(i) for i in range(len(L))]
+
+L.hasse()
+L.rappresenta()
+L.dinamic_congruences()
+
+P = pl.PoSet.from_cover_matrix(c)
+
+P.hasse(hasse_mode=5)
+B = P.dedekind_completetion(nice_labels=True)
+B*= pl.Lattice.from_chain(2)
+B.dinamic_congruences()
+
+
+pene
 ## Construct a PoSet
 ### From a domination matrix
                     #  a  b  c  d  e 
@@ -77,3 +114,15 @@ print(type(P))
 P.as_lattice()
 print(type(P))
 P.hasse(shape = (200,400), radius = 2, labels = True, t_size=12)
+
+
+## Dedekind completition of a PoSet
+c = [
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [1, 1, 0, 0],
+    [1, 1, 0, 0]
+]
+
+P = pl.PoSet.from_cover_matrix(c)
+P.hasse(P.dedekind_completetion(nice_labels=True),shape=(400,200), radius = 3, labels= True)
