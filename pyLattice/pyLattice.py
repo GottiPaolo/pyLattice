@@ -59,24 +59,21 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     """
     if hasse_mode == 0:
         
-        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
-        x = mappa(colonna,-1,righe.count(riga),min_x-r*2,max_x+r*2)
+        y = mappa(riga,-0.5,max(righe) + 0.5,min_y,max_y-r)
+        x = mappa(colonna,-0.5,righe.count(riga) -0.5,min_x,max_x)
   
     elif hasse_mode == 1:
-        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
-        x = mappa(colonna,-1,max(righe),min_x-r*2,max_x+r*2)
-        
+        gap_x = (max_x - min_x) / max([righe.count(r) for r in righe])
+        gap_y = (max_y - min_y) / (max(righe) + 1)
+        y = min_y + (riga + 0.5) * gap_y
+        x = min_x + (colonna +0.5) * gap_x
+
     elif hasse_mode == 2:
-        max_n_righe = max([righe.count(r) for r in righe])
-        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
-        x = max_x/2 + (colonna - righe.count(riga)//2)*(max_x-min_x)/max_n_righe
-        
+        gap_x = (max_x - min_x) / max([righe.count(r) for r in righe])
+        y = mappa(riga+0.5,0,max(righe)+1,min_y,max_y)
+        x = min_x + (max_x-min_x)*0.5 + (colonna - righe.count(riga)/2+0.5)*gap_x
+
     elif hasse_mode == 3:
-        max_n_righe = max([righe.count(r) for r in righe])
-        y = mappa(riga,0,max(righe),min_y+r*2,max_y-r * 2)
-        x = max_x/2 + (colonna - righe.count(riga)//2 +((righe.count(riga)+1)%2)*0.5 )*(max_x-min_x)/(max_n_righe)
-    
-    elif hasse_mode == 4:
         max_n_righe = max([righe.count(r) for r in righe]) # numero massimo di elementi in una riga
         
         if max_n_righe == 1: 
@@ -92,7 +89,7 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
         y = mappa(riga,0,max(righe) ,min_y+space_v,max_y-space_v)
         x = mappa(colonna,-1,righe.count(riga),min_x-space_x,max_x+space_x)
         
-    elif hasse_mode == 5:
+    elif hasse_mode == 4:
         """
         Squadro i margini tenendo il maggiore
         """
@@ -112,21 +109,33 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
         y = mappa(riga,0,max(righe,),min_y+gap,max_y-gap)
         x = mappa(colonna,-1,righe.count(riga),min_x-gap,max_x+gap)
         
+    elif hasse_mode == 5:
+        # Come il precedente ma non assumo un riquadro quadrato
+        n_points = max(max([righe.count(r) for r in righe]),(max(righe) + 1))#
+        gap_x = (max_x - min_x) / n_points #(cons# idero come margine gap/2)
+        gap_y = (max_y - min_y) / n_points
+        #gap = max(gap_x, gap_y)
+        
+        y = min_y + gap_y*0.5 + riga*gap_y + (n_points - (max(righe) + 1)) *0.5* gap_y # devo centrare y se vince x , così come centro x se vince y
+        x = min_x + gap_x * 0.5 + colonna*gap_x + (n_points - righe.count(riga)) *0.5* gap_x# + qualcosa legato a righe.count(riga) e max([righe.count(r) for r in righe])
+   
     elif hasse_mode == 6:
         """
-        Obiettivo, tenere una griglia quadrata per i calcoli matematici me li segnerò
+        Diagramma di hasse centrato in un riquadro
+        tra gap_x e gap_y prendo il minore e lo rendo universale
+        la distanza tra righe e coloenne è la stessa
         """
-        # Se assumo che il riquadro è sempre quadrato, cosa per ora vera
-        n_points = max(max([righe.count(r) for r in righe]),(max(righe) + 1))# 
-        gap =  (max_x - min_x) / n_points
-        # gap_x = (max_x - min_x) / max([righe.count(r) for r in righe]) #(cons# idero come margine gap/2)
-        # gap_y = (max_y - min_y) / (max(righe) + 1)
-        
-        
-        y = min_y + gap*0.5 + riga*gap + (n_points - (max(righe) + 1)) *0.5* gap # devo centrare y se vince x , così come centro x se vince y
-        x = min_x + gap * 0.5 + colonna*gap + (n_points - righe.count(riga)) *0.5* gap# + qualcosa legato a righe.count(riga) e max([righe.count(r) for r in righe])
-   
-
+        gap_x = (max_x - min_x) / max([righe.count(r) for r in righe])
+        gap_y = (max_y - min_y) / (max(righe) + 1)
+        if gap_x > gap_y:
+            x = min_x + colonna*gap_y + ((max_x-min_x) - (righe.count(riga)-1)*gap_y)*0.5
+            y = min_y + riga*gap_y + ((max_y-min_y) - (max(righe))*gap_y)*0.5
+       
+        else:
+            x = min_x + colonna*gap_x + ((max_x-min_x) - (righe.count(riga)-1)*gap_x)*0.5
+            y = min_y + riga*gap_x + ((max_y-min_y) - (max(righe))*gap_x)*0.5
+       
+            
     else:
         raise ValueError('Hasse mode non definita')
       
@@ -144,19 +153,21 @@ def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y,hasse_mode = 4):
         dizCoor[i] = converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode=hasse_mode)
     return dizCoor
 
-def PoSet_to_show(*PoSet):
+def PoSet_to_show(*PoSet, grid = None, hasse_mode = 4):
     """
     Funzione che globalizza i dati dei PoSet da mostrare
     WIDTH, HEIGHT non sono utilizzati solo perchè sono un pirla (o forse c'era un motivo)
     La griglia è calcolata per essere alta due e lunga n//2 escluso il caso in cui vengano passati due PoSet, in quel caso
     Sono affiancati orizzontalemnte
     """
-    global PoSets, Griglia, WIDTH, HEIGHT
+    global PoSets, Griglia, WIDTH, HEIGHT, HASSE_MODE
     PoSets = PoSet
-    if len(PoSet) > 2:
-        Griglia = ((len(PoSet)+1)//2 , 2)
-    else: 
-        Griglia = (len(PoSet) , 1)
+    HASSE_MODE = hasse_mode
+    if not grid:
+        Griglia = (1 , len(PoSet))
+    else:
+        Griglia = grid
+
         
     WIDTH, HEIGHT = 500,500
 
@@ -167,13 +178,17 @@ def get_dati(Pi,min_x,max_x,min_y,max_y):
     righe = get_righe(Pi.cover_matrix)
     colonne = get_colonne(righe)
     radius = min(((max_y-min_y))/(max(righe)+1),(max_x-min_x)/(max(colonne)+1))
-    radius *= 0.5 * 0.8
+    radius *= 0.4
     t_size = radius *0.5 # *0.3
     if radius > 10:
-        radius = 20
+        radius = 10
+    if radius < 5:
+        radius = 5
     if t_size < 10:
         t_size = 10
-    dizCoor = get_coor(righe,colonne,radius,min_x,max_x,min_y,max_y)
+    elif t_size > 40:
+        t_size = 40
+    dizCoor = get_coor(righe,colonne,radius,min_x,max_x,min_y,max_y, hasse_mode=HASSE_MODE)
     return radius, t_size, dizCoor
 
 def rappresenta(Pi):
@@ -205,23 +220,23 @@ def rappresenta(Pi):
         p5.ellipse(dizCoor[p][0],dizCoor[p][1],radius,radius)
         p5.fill(0)
         p5.text_size(t_size)
-        p5.text(Pi.labels[p],dizCoor[p][0]-(len(Pi.labels[p])//2*t_size*0.5),dizCoor[p][1]+radius+t_size/2)
+        p5.text(Pi.labels[p],dizCoor[p][0]-(len(Pi.labels[p])//2*t_size*0.5),
+                dizCoor[p][1]+radius*2+t_size/2)
 
 def setup():
     """
     Funzione di base di p5 dei calcoli da fare per generare la finestra
     """
-    print('PARTITI')
     global dizPi, selected, WIDTH, HEIGHT
     p5.background(255)
     p5.size(WIDTH, HEIGHT)
     dizPi = {}
     selected = False
     for i,Pi in enumerate(PoSets):    
-        min_x = (i %  Griglia[0]) * width / Griglia[0] 
-        min_y = (i //  Griglia[0]) * height / Griglia[1] 
-        max_x = min_x + width / Griglia[0] 
-        max_y = min_y + height / Griglia[1] 
+        min_x = (i %  Griglia[1]) * width / Griglia[1] 
+        min_y = (i //  Griglia[1]) * height / Griglia[0] 
+        max_x = min_x + width / Griglia[1] 
+        max_y = min_y + height / Griglia[0] 
         #radius, t_size, dizCoor = get_dati(Pi.cover_matrix,min_x,min_x+500,min_y,min_y+500)
         dizPi[Pi] = get_dati(Pi,min_x,max_x,min_y, max_y)
         rappresenta(Pi)
@@ -762,16 +777,7 @@ class PoSet:
             if down:
                 downer.append(i)
         return downer
-        
-    def rappresenta(*PoSets):
-        """
-        Funzione per creare la finestra interattiva che rappresenta il poset
-        (giuro che le cambiero nome)
-        """
-        PoSet_to_show(*PoSets)
-        #get_dati(self.cover_matrix,list(map(lambda x: str(x),self.obj)))
-        p5.run(renderer="skia",sketch_setup=setup,sketch_draw=draw)
-        
+             
     def index_join(self,*args):
         """
         Identica alla funzione join ma invece che richiedere un elemento del poset chiede solo il suo indice
@@ -972,6 +978,9 @@ class PoSet:
         
         return PoSet(domination_matrix,X,labels)
     
+    def from_antichain(n):
+        return PoSet.from_function(list(range(n)), lambda a,b : a==b)
+     
     def FCA(relation, oggetti=None, attributi=None):
         """
         FCA per niente ottimizzata, letteralmente scorrendo tutto il powerset di extent / intent
@@ -1051,6 +1060,16 @@ class PoSet:
         # for P in PoSets:
         #     hasse_diagram(P.cover_matrix,shape,radius,hasse_mode,title)    
      
+    def rappresenta(*PoSets, grid = None, hasse_mode = 4,):
+        """
+        Funzione per creare la finestra interattiva che rappresenta il poset
+        (giuro che le cambiero nome)
+        """
+        PoSet_to_show(*PoSets, grid = grid,hasse_mode = hasse_mode)
+        #get_dati(self.cover_matrix,list(map(lambda x: str(x),self.obj)))
+        p5.run(renderer="skia",sketch_setup=setup,sketch_draw=draw)
+       
+     
     def restituiscimi_cover_matrix(self) -> None:
         for i,k in enumerate(self.cover_matrix):
             if i ==0 :
@@ -1066,6 +1085,7 @@ class PoSet:
         self.obj = [str(i) for i in range(len(self))]
         self.labels = [str(i) for i in range(len(self))]
         
+           
 class Lattice(PoSet):
     ## Personal Function
     def join(self,*args):

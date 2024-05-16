@@ -1,5 +1,7 @@
 import pyLattice.pyLattice as pl
 
+pl.Lattice.rappresenta(*[pl.Lattice.from_power_set(i) for i in range(3,9)],grid = (2,3), hasse_mode=3)
+pl.Lattice.from_cw(4,3).dinamic_congruences()
 ## Construct a PoSet
 ### From a domination matrix
                     #  a  b  c  d  e 
@@ -67,6 +69,7 @@ C_2 = pl.Lattice.from_chain(2)
 C_3 = pl.Lattice.from_chain(3)
 CW = C_2 * C_3
 C_2.hasse(C_3,CW)
+C_2.rappresenta(C_3,CW)
 
 CW.hasse(pl.Lattice.from_cw(2,3),shape = (400,200), radius = 2, labels = True, t_size=12)
 
