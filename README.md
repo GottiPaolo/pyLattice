@@ -90,14 +90,15 @@ The main differences beetwen PoSet and Lattice is that the last ones are algebri
 There are several ways to construct a Lattice.
 Every single one seen for PoSets is still valid. But we have something more:
 - Dedekind completion of a PoSet (implemented but not in the smart way... will be update in the future.)
-![alt text](img/dedekind_completion.png)
+![image](https://github.com/GottiPaolo/pyLattice/blob/main/img/dedekind_completion.png)
 
 - Built-in function for classic Lattice:
     - `Lattice.from_power_set(n)`: return a Lattice of the powerset of a three elements set order by $\subseteq$
     - `Lattice.from_chain(n)`: return a Lattice of $n$ element where $x_i\unlhd x_j \Longleftrightarrow x\le j$
     - `Lattice.from_cw(*numbers)`: return a Lattice construct as the cartesian product of chains. For example `Lattice.from_cw(3,3,2)` returns a Lattice wich is the same of `Lattice.from_chain(3) * Lattice.from_chain(3) * Lattice.from_chain(2)`  
     An example of some lattices of powersets
-    ![alt text](img/powesets_lattices.png)
+    ![img](https://github.com/GottiPaolo/pyLattice/blob/main/img/powesets_lattices.png)
+
 - Moltiplicadion and addition beetwen Lattice return always a Lattice.
 - You can convert a PoSet in a Lattice by the confuction `P.as_lattice()`. Be sure that P is actually a Lattice with the command `P.is_lattice()`.
 - Be very careful to construct a Lattice. The program never check thata the domination matrix is actually the domination matrix of a Lattice.
@@ -115,7 +116,8 @@ $\theta = [c_0,c_1,\dots,c_n]$ where $c_i = c_j \leftrightarrow x_i\equiv x_j $
 
 - you can calculate all the congruences with `L.all_congruenze()`
 - you can calculate all the congruences with `L.CongruenceLattice()` (as labels for $\theta$ are used $|L/\theta|$ unless you specify `labels = True`)
-![alt text](img/L_ConL.png)
+![img](https://github.com/GottiPaolo/pyLattice/blob/main/img/L_ConL.png)
 
 - you can play dinamic in a p5 window with the command `L.dinamic_congruences()`. In this mode $L$ and $Con L$ are shown togheter, and edges in $L$ become red to indicate classe for the congruences pointing with the mouse in Con L.
- ![alt text](img/dinamic_L_ConL.png)
+
+![img](https://github.com/GottiPaolo/pyLattice/blob/main/img/dinamic_L_ConL.png)
