@@ -41,7 +41,7 @@ To define a PoSet there are other ways:
     `P = PoSet.from_function(list(range(1,20)), lambda a,b: a%b == 0)`
     You need to pass to elemnt:
     - `X`: Element to compare
-    - `f`: function to compare. This function should be to the form: $f(a,b) = True \Leftrightarrow a\unlhd b\space; False \space\text{otehrwise}$  
+    - `f`: function to compare. This function should be to the form: $f(a,b) = True \Leftrightarrow a\unlhd b\space; False \space\text{otherwise}$  
 
 - From operation beetwen different PoSet (_see later_)
 
@@ -65,7 +65,7 @@ With two or more PoSet you can compute this operation
     - $x \in P$ and $y\in Q$
 
 - Cartesian product: `P * Q`  
-    the cartesian product $P_1 \times P_2$ is an ordered set where the object is the cartesian product of the objec in $P_1,P_2$ ordered by : $(x_1,x_2)\unlhd (y_1,y_2)\Leftrightarrow x_1 \unlhd_1 y_1 \vee x_2 \unlhd_2 y_2  $
+    the cartesian product $P_1 \times P_2$ is an ordered set where the object is the cartesian product of the objec in $P_1,P_2$ ordered by : $(x_1,x_2)\unlhd (y_1,y_2)\Leftrightarrow x_1 \unlhd_1 y_1 \vee x_2 \unlhd_2 y_2$
 
 ### Hasse diagram
 You can represent a PoSet by a Hasse diagram.  
@@ -79,9 +79,9 @@ To get the Hasse diagram of a PoSet you can just call the function `P.hasse()`. 
 - `labels`: boolean to show or hide labels
 - `t_size`: text size of the labels
 
-Hasse diagram could be ambigous in some situation. Points could allign and looks like there are connection then effictevly there aren't. The best way to improve this problem is to make the graph interactive (later update.)
+Hasse diagram could be ambigous in some situation. Points could allign and looks like they are connected when effictevly they aren not. The best way to improve this problem is to make the graph interactive (later update.)
 
-Know this i possible by using the function `P.rappresenta()` instead  `P.hasse()`. The first one use the `p5` module instead the `tk`. But it could have some serious problem.
+You can plot a more dinamic hasse diagram by using the function `P.hasse_p5()` instead of `P.hasse()`. The first one use the `p5` module instead the `tk`. But `p5`is not so well integrated in python enviroment.
 
 ## Lattice
 The main differences beetwen PoSet and Lattice is that the last ones are algebric structure. Infact in lattice _join_ and _meet_ are **always** defined. The structure of a Lattice module is the same as the PoSet. The difference beetwen the two are in some function and operation 
@@ -89,11 +89,15 @@ The main differences beetwen PoSet and Lattice is that the last ones are algebri
 ### Construct a Lattice
 There are several ways to construct a Lattice.
 Every single one seen for PoSets is still valid. But we have something more:
-- Dedekind completion of a PoSet (not implemented yet)
+- Dedekind completion of a PoSet (implemented but not in the smart way... will be update in the future.)
+![alt text](img/dedekind_completion.png)
+
 - Built-in function for classic Lattice:
     - `Lattice.from_power_set(n)`: return a Lattice of the powerset of a three elements set order by $\subseteq$
     - `Lattice.from_chain(n)`: return a Lattice of $n$ element where $x_i\unlhd x_j \Longleftrightarrow x\le j$
-    - `Lattice.from_cw(*numbers)`: return a Lattice construct as the cartesian product of chains. For example `Lattice.from_cw(3,3,2)` returns a Lattice wich is the same of `Lattice.from_chain(3) * Lattice.from_chain(3) * Lattice.from_chain(2)`
+    - `Lattice.from_cw(*numbers)`: return a Lattice construct as the cartesian product of chains. For example `Lattice.from_cw(3,3,2)` returns a Lattice wich is the same of `Lattice.from_chain(3) * Lattice.from_chain(3) * Lattice.from_chain(2)`  
+    An example of some lattices of powersets
+    ![alt text](img/powesets_lattices.png)
 - Moltiplicadion and addition beetwen Lattice return always a Lattice.
 - You can convert a PoSet in a Lattice by the confuction `P.as_lattice()`. Be sure that P is actually a Lattice with the command `P.is_lattice()`.
 - Be very careful to construct a Lattice. The program never check thata the domination matrix is actually the domination matrix of a Lattice.
@@ -101,3 +105,17 @@ Every single one seen for PoSets is still valid. But we have something more:
 
 ### Congruences
 One of the most important properties of a Lattice is the Congruence.
+Congruence are rappresented by a list of the same size of the Lattice.
+
+$\theta = [c_0,c_1,\dots,c_n]$ where $c_i = c_j \leftrightarrow x_i\equiv x_j $
+
+- you can calculate the congruence that collapse element $x_i$ and $x_j$ with the command `L.calcola_congruenza(i,j)`
+
+- you can calculate all the irriducible congruences with `L.congruenze_join_irriducibili()`
+
+- you can calculate all the congruences with `L.all_congruenze()`
+- you can calculate all the congruences with `L.CongruenceLattice()` (as labels for $\theta$ are used $|L/\theta|$ unless you specify `labels = True`)
+![alt text](img/L_ConL.png)
+
+- you can play dinamic in a p5 window with the command `L.dinamic_congruences()`. In this mode $L$ and $Con L$ are shown togheter, and edges in $L$ become red to indicate classe for the congruences pointing with the mouse in Con L.
+ ![alt text](img/dinamic_L_ConL.png)

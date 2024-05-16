@@ -1,8 +1,5 @@
 import pyLattice.pyLattice as pl
 
-# pl.Lattice.rappresenta(*[pl.Lattice.from_power_set(i) for i in range(3,9)],grid = (2,3), hasse_mode=3)
-pl.Lattice.from_cw(3,4).rappresenta()
-pl.Lattice.from_cw(3,4).dinamic_congruences()
 ## Construct a PoSet
 ### From a domination matrix
                     #  a  b  c  d  e 
@@ -65,15 +62,19 @@ pl.PoSet.hasse(Q,Q,H, grid = (1,3))
 
 
 # Lattice
+## powersets
 pl.Lattice.from_power_set(3).hasse(labels = True)
+pl.PoSet.hasse(*[pl.Lattice.from_power_set(i) for i in range(2,8)],
+               grid = (2,3), title='Power Sets', radius = 3, shape = (600,400))
+
+# chain and product beetwen chain
 C_2 = pl.Lattice.from_chain(2)
 C_3 = pl.Lattice.from_chain(3)
 CW = C_2 * C_3
 C_2.hasse(C_3,CW)
-C_2.rappresenta(C_3,CW)
-
 CW.hasse(pl.Lattice.from_cw(2,3),shape = (400,200), radius = 2, labels = True, t_size=12)
 
+#Chek if a poset is a lattice
 n = 390
 P = pl.PoSet.from_function([i for i in range(1,n+1) if n%i == 0], lambda a,b: b%a == 0)
 print(P.is_lattice())
@@ -83,7 +84,7 @@ print(type(P))
 P.hasse(shape = (200,400), radius = 2, labels = True, t_size=12)
 
 
-## Dedekind completition of a PoSet
+## Dedekind completition of a PoSet (beta)
 c = [
     [0, 0, 0, 0],
     [0, 0, 0, 0],
@@ -93,3 +94,12 @@ c = [
 
 P = pl.PoSet.from_cover_matrix(c)
 P.hasse(P.dedekind_completetion(nice_labels=True),shape=(400,200), radius = 3, labels= True)
+
+
+### Congruencens
+
+L = pl.Lattice.from_cw(2,3,4)
+
+print(L.calcola_congruenza(10,15)) # [0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2]
+L.hasse(L.CongruenceLattice(),shape = (500,250), radius = 3)
+L.dinamic_congruences()

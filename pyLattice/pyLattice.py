@@ -1053,7 +1053,7 @@ class PoSet:
             return Lattice.from_function(cuts,lambda a,b: a<= b, labels=labels)
         return Lattice.from_function(cuts,lambda a,b: a<= b)
 
-    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', 
+    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 3, title = 'PoSet', 
               labels = False, t_size = None, save_ps = False):
         
         hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, 
@@ -1370,14 +1370,14 @@ class Lattice(PoSet):
         all_congruenze.append(list(range(len(self)))) # AGGIUNGO ALLA FINE IDENTITÀ
         return all_congruenze
 
-    def CongruenceLattice(self, labels = None):
+    def CongruenceLattice(self, labels = False):
         a = self.all_congruenze()
         if not labels:
             return Lattice.from_function(a,confronta_blocchi,labels = [str(numero_blocchi(c)) for c in a])
         else:
-            return Lattice.from_function(a,confronta_blocchi,labels = labels)
+            return Lattice.from_function(a,confronta_blocchi)
         
-    def dinamic_congruences(self,Con_labels = None, labels = True):
+    def dinamic_congruences(self,Con_labels = False, labels = True):
         global dinamic_congruence
         dinamic_congruence = True
         self.hasse_p5(self.CongruenceLattice(Con_labels), labels = labels)
