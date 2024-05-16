@@ -58,7 +58,6 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     funzoine per convertire i punti da righe e colonna discretizzate a coordinate nella finestra
     """
     if hasse_mode == 0:
-        
         y = mappa(riga,-0.5,max(righe) + 0.5,min_y,max_y-r)
         x = mappa(colonna,-0.5,righe.count(riga) -0.5,min_x,max_x)
   
@@ -110,7 +109,6 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
         x = mappa(colonna,-1,righe.count(riga),min_x-gap,max_x+gap)
         
     elif hasse_mode == 5:
-        # Come il precedente ma non assumo un riquadro quadrato
         n_points = max(max([righe.count(r) for r in righe]),(max(righe) + 1))#
         gap_x = (max_x - min_x) / n_points #(cons# idero come margine gap/2)
         gap_y = (max_y - min_y) / n_points
@@ -153,21 +151,21 @@ def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y,hasse_mode = 4):
         dizCoor[i] = converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode=hasse_mode)
     return dizCoor
 
-def PoSet_to_show(*PoSet, grid = None, hasse_mode = 4):
+def PoSet_to_show(*PoSet, grid = None, hasse_mode = 4, show_labels = True):
     """
     Funzione che globalizza i dati dei PoSet da mostrare
     WIDTH, HEIGHT non sono utilizzati solo perchè sono un pirla (o forse c'era un motivo)
     La griglia è calcolata per essere alta due e lunga n//2 escluso il caso in cui vengano passati due PoSet, in quel caso
     Sono affiancati orizzontalemnte
     """
-    global PoSets, Griglia, WIDTH, HEIGHT, HASSE_MODE
+    global PoSets, Griglia, WIDTH, HEIGHT, HASSE_MODE, Show_labels
     PoSets = PoSet
     HASSE_MODE = hasse_mode
     if not grid:
         Griglia = (1 , len(PoSet))
     else:
         Griglia = grid
-
+    Show_labels = show_labels
         
     WIDTH, HEIGHT = 500,500
 
@@ -180,12 +178,12 @@ def get_dati(Pi,min_x,max_x,min_y,max_y):
     radius = min(((max_y-min_y))/(max(righe)+1),(max_x-min_x)/(max(colonne)+1))
     radius *= 0.4
     t_size = radius *0.5 # *0.3
-    if radius > 10:
-        radius = 10
-    if radius < 5:
-        radius = 5
-    if t_size < 10:
-        t_size = 10
+    if radius > 15:
+        radius = 15
+    if radius < 7:
+        radius = 7
+    if t_size < 20:
+        t_size = 20
     elif t_size > 40:
         t_size = 40
     dizCoor = get_coor(righe,colonne,radius,min_x,max_x,min_y,max_y, hasse_mode=HASSE_MODE)
@@ -219,9 +217,10 @@ def rappresenta(Pi):
         p5.fill(130)
         p5.ellipse(dizCoor[p][0],dizCoor[p][1],radius,radius)
         p5.fill(0)
-        p5.text_size(t_size)
-        p5.text(Pi.labels[p],dizCoor[p][0]-(len(Pi.labels[p])//2*t_size*0.5),
-                dizCoor[p][1]+radius*2+t_size/2)
+        if Show_labels:
+            p5.text_size(t_size)
+            p5.text(Pi.labels[p],dizCoor[p][0]-(len(Pi.labels[p])//2*t_size*0.5),
+                    dizCoor[p][1]+radius*2+t_size/2)
 
 def setup():
     """
@@ -287,16 +286,17 @@ def mouse_pressed():
         dizPi = {}
         selected = False
         for i,Pi in enumerate(PoSets):    
-            min_x = (i %  Griglia[0]) * width / Griglia[0] 
-            min_y = (i //  Griglia[0]) * height / Griglia[1] 
-            max_x = min_x + width / Griglia[0] 
-            max_y = min_y + height / Griglia[1] 
+            min_x = (i %  Griglia[1]) * width / Griglia[1] 
+            min_y = (i //  Griglia[1]) * height / Griglia[0] 
+            max_x = min_x + width / Griglia[1] 
+            max_y = min_y + height / Griglia[0] 
             #radius, t_size, dizCoor = get_dati(Pi.cover_matrix,min_x,min_x+500,min_y,min_y+500)
             dizPi[Pi] = get_dati(Pi,min_x,max_x,min_y, max_y)
             rappresenta(Pi)
 
 # tk
-def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode = 4, labels = None, t_size = None):
+def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode = 4,
+                         labels = None, t_size = None):
     if radius:
         RADIUS = radius
     else:
@@ -330,7 +330,8 @@ def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode =
             canvas.create_text(x,y + RADIUS*2 + fontSize/2 ,font=f"Times {fontSize}",
                             text=labels[i])
         
-def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse_mode = 2, title = 'PoSet', labels = False, t_size = None, save_ps = False):
+def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse_mode = 2, 
+                  title = 'PoSet', labels = False, t_size = None, save_ps = False):
     """
     Crea una finestra tk-inter con il diagramma di hasse non dinamico di un poset.
     """
@@ -340,7 +341,7 @@ def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse
         WIDTH,HEIGHT = 500,500
         
     if not grid:
-        grid = (len(PoSets),1)
+        grid = (1,len(PoSets))
     #Crea finestra
     root = tk.Tk()
     root.geometry(str(WIDTH)+'x'+str(HEIGHT))
@@ -349,15 +350,15 @@ def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse
     canvas.pack(anchor=tk.CENTER, expand=True)
     
     for i,P in enumerate(PoSets):
-        riga = i // grid[0]
-        col  = i % grid[0]
+        riga = i // grid[1]
+        col  = i % grid[1]
         if labels:
-            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[0], (col  + 1) * WIDTH / grid[0],
-                                                            riga * HEIGHT / grid[1], (riga + 1) * HEIGHT / grid[1]), 
+            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[1], (col  + 1) * WIDTH / grid[1],
+                                                            riga * HEIGHT / grid[0], (riga + 1) * HEIGHT / grid[0]), 
                              radius = radius, hasse_mode = hasse_mode, labels = P.labels, t_size=t_size)
         else:
-            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[0], (col  + 1) * WIDTH / grid[0],
-                                                            riga * HEIGHT / grid[1], (riga + 1) * HEIGHT / grid[1]), 
+            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[1], (col  + 1) * WIDTH / grid[1],
+                                                            riga * HEIGHT / grid[0], (riga + 1) * HEIGHT / grid[0]), 
                              radius = radius, hasse_mode = hasse_mode, t_size=t_size)
 
     if save_ps:
@@ -1052,20 +1053,22 @@ class PoSet:
             return Lattice.from_function(cuts,lambda a,b: a<= b, labels=labels)
         return Lattice.from_function(cuts,lambda a,b: a<= b)
 
-    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', labels = False, t_size = None, save_ps = False):
+    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 4, title = 'PoSet', 
+              labels = False, t_size = None, save_ps = False):
         
-        hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, labels=labels, t_size = t_size, save_ps = save_ps)
+        hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, 
+                      labels=labels, t_size = t_size, save_ps = save_ps)
                     #  shape,radius,hasse_mode,title)   
-        # assert grid[0] * grid[1] >= len(self)
+        # assert grid[1] * grid[0] >= len(self)
         # for P in PoSets:
         #     hasse_diagram(P.cover_matrix,shape,radius,hasse_mode,title)    
      
-    def rappresenta(*PoSets, grid = None, hasse_mode = 4,):
+    def hasse_p5(*PoSets, grid = None, hasse_mode = 4, labels = True):
         """
         Funzione per creare la finestra interattiva che rappresenta il poset
         (giuro che le cambiero nome)
         """
-        PoSet_to_show(*PoSets, grid = grid,hasse_mode = hasse_mode)
+        PoSet_to_show(*PoSets, grid = grid,hasse_mode = hasse_mode ,show_labels = labels)
         #get_dati(self.cover_matrix,list(map(lambda x: str(x),self.obj)))
         p5.run(renderer="skia",sketch_setup=setup,sketch_draw=draw)
        
@@ -1374,10 +1377,10 @@ class Lattice(PoSet):
         else:
             return Lattice.from_function(a,confronta_blocchi,labels = labels)
         
-    def dinamic_congruences(self,labels = None):
+    def dinamic_congruences(self,Con_labels = None, labels = True):
         global dinamic_congruence
         dinamic_congruence = True
-        self.rappresenta(self.CongruenceLattice(labels))
+        self.hasse_p5(self.CongruenceLattice(Con_labels), labels = labels)
         dinamic_congruence = False 
         
     #### Special Lattice

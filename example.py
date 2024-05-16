@@ -1,7 +1,8 @@
 import pyLattice.pyLattice as pl
 
-pl.Lattice.rappresenta(*[pl.Lattice.from_power_set(i) for i in range(3,9)],grid = (2,3), hasse_mode=3)
-pl.Lattice.from_cw(4,3).dinamic_congruences()
+# pl.Lattice.rappresenta(*[pl.Lattice.from_power_set(i) for i in range(3,9)],grid = (2,3), hasse_mode=3)
+pl.Lattice.from_cw(3,4).rappresenta()
+pl.Lattice.from_cw(3,4).dinamic_congruences()
 ## Construct a PoSet
 ### From a domination matrix
                     #  a  b  c  d  e 
