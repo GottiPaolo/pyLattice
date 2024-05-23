@@ -103,7 +103,7 @@ Devo implementare tutte queste funzionalità:
 - Rappresentare un poset (sarebbe carino includere diverse modalità)
 - Rappresentare più poset specificando la disposizione della griglia
 - Rappresentare più poset specificando quanto spazio deve occupare ciascuno
-- Evidenziare con diversi colori certi legami o certi Pallini
+- Evidenziare con diversi colori certi legami o certi Pallini (da inserire nella classe Hasse)
 - Inserire una modalità specifica per le congruenze dinamiche
 - Rendere la finestra dinamica (poterla rimodificare)
 
