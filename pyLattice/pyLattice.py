@@ -250,12 +250,12 @@ def draw():
         rappresenta(Pi)
 
     ### MUOVI IN MANIERA DINAMICA
-    if mouse_pressed():
+    if mouse_is_pressed:
         griglia_x = mouse_x // (width / Griglia[0])
         griglia_y = mouse_y // (height / Griglia[1])
         indice = int(griglia_y*Griglia[0] + griglia_x)
         for p in range(len(dizPi[PoSets[indice]][2])):
-            if p5.dist((mouse_x,mouse_y),dizPi[PoSets[indice]][2][p]) * 2< dizPi[PoSets[indice]][0]:
+            if p5.dist((mouse_x,mouse_y),dizPi[PoSets[indice]][2][p]) < dizPi[PoSets[indice]][0]:
                 p5.noFill()
                 p5.strokeWeight(4)
                 p5.stroke(255,0,0)
@@ -1088,6 +1088,35 @@ class PoSet:
         self.obj = [str(i) for i in range(len(self))]
         self.labels = [str(i) for i in range(len(self))]
         
+    def hasse_coordinate(self,W,H):
+        """
+        Questa funzione restituisce i dati per rappresentare un diagramma 
+        di hasse del poset in una finestra di ampiezza W x H
+        
+        restituisce due elementi: 
+        - _nodes_: Lista tuple con le coordinate dei pallina della finestra [(x_0,y_0), (x_1,y_1),...]
+        - _vertex_Lista di tuple dei vertici da collegare : [(0,1), (0,2),...]
+        
+        
+        Voglio trovare un modo intelligente per rendererlo customizzarbile, attualmente il diagramma di hasse è costruito con i seguenti step logici
+        - le righe dei punti vengono individuate nella seguente maniera:
+            - se non ti copre nessuno -> 0
+            - altrimenti --> max(righe di chi ti copre) + 1
+        - le colonne sono semplici numeri progressivi non ripetuti a parità di riga
+        - La disposizione nella finestra segue queste regole 
+            - Lungo l'asse verticale i punti hanno una distanza uguale più mezza di questa distanza dai bordi
+            - Lungo l'asse orizzontale come sopra, con la differenza che la distanza (gap) cambia in base al numero di punti 
+        
+        """
+        
+        rows = get_righe(self.cover_matrix)
+        cols = get_colonne(righe = rows)
+        gaps_x = [W/rows.count(x) for x in rows]
+        gap_y = H / (max(rows)+1) # più uno perchè conto da 0
+        nodes = [((c+0.5)*gap_x, (r+0.5)*gap_y) for r,c,gap_x in zip(rows,cols,gaps_x)]
+        vertex = [(i,j)  for i in range(len(self)) for j in range(i+1,len(self)) if self.cover_matrix[i][j] or self.cover_matrix[j][i]]
+        
+        return nodes, vertex
            
 class Lattice(PoSet):
     ## Personal Function
