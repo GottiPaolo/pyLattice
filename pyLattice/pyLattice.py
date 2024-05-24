@@ -250,7 +250,7 @@ def draw():
         rappresenta(Pi)
 
     ### MUOVI IN MANIERA DINAMICA
-    if mouse_is_pressed:
+    if mouse_is_pressed and mouse_button == p5.LEFT:
         griglia_x = mouse_x // (width / Griglia[0])
         griglia_y = mouse_y // (height / Griglia[1])
         indice = int(griglia_y*Griglia[0] + griglia_x)
@@ -1088,7 +1088,7 @@ class PoSet:
         self.obj = [str(i) for i in range(len(self))]
         self.labels = [str(i) for i in range(len(self))]
         
-    def hasse_coordinate(self,W,H):
+    def hasse_coordinate(self,W = 1,H = 1):
         """
         Questa funzione restituisce i dati per rappresentare un diagramma 
         di hasse del poset in una finestra di ampiezza W x H
@@ -1116,7 +1116,7 @@ class PoSet:
         nodes = [((c+0.5)*gap_x, (r+0.5)*gap_y) for r,c,gap_x in zip(rows,cols,gaps_x)]
         vertex = [(i,j)  for i in range(len(self)) for j in range(i+1,len(self)) if self.cover_matrix[i][j] or self.cover_matrix[j][i]]
         
-        return nodes, vertex
+        return nodes, vertex, self.labels
            
 class Lattice(PoSet):
     ## Personal Function
@@ -1308,7 +1308,7 @@ class Lattice(PoSet):
   
     def calcola_congruenza(self,a,b):
         """
-        Calcola la più piccola congruenza che unisce a e b
+        Calcola la più piccola congruenza che unisce a e b (intesi come indici)
         
         Probabilmente può essere ottimizzato ma non mi interessa adesso
         """
@@ -1406,10 +1406,15 @@ class Lattice(PoSet):
         else:
             return Lattice.from_function(a,confronta_blocchi)
         
-    def dinamic_congruences(self,Con_labels = False, labels = True):
+    def dinamic_congruences(self,Con_labels = False, labels = True, p_con_labels = None):
         global dinamic_congruence
         dinamic_congruence = True
-        self.hasse_p5(self.CongruenceLattice(Con_labels), labels = labels)
+        if not p_con_labels:
+            self.hasse_p5(self.CongruenceLattice(Con_labels), labels = labels)
+        else:
+            ConL = self.CongruenceLattice()
+            ConL.labels = p_con_labels
+            self.hasse_p5(ConL, labels = labels)
         dinamic_congruence = False 
         
     #### Special Lattice
@@ -1450,6 +1455,322 @@ class Lattice(PoSet):
         return Lattice.from_function(genera_cw(lista),component_wise)
     
     
+class Hasse():
+    def __init__(self, nodes, vertex, labels, radius = 2, vertex_color = None, nodes_color = None):
+        self.nodes = nodes
+        self.vertex = vertex
+        self.r = radius
+        self.labels = labels
+        if not nodes_color:
+            self.nodes_color = ['grey' for i in self.nodes]
+        else:
+            self.nodes_color = nodes_color
+            
+        if not vertex_color:
+            self.vertex_color = ['black' for i in self.vertex]
+        else:
+            self.vertex_color = vertex_color
+            
+    def show_congruence(self, con):
+        self.vertex_color = ['red' if con[a] == con[b] else 'black' for a,b in self.vertex]
+        
+
+class Finestra():
+    def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12):
+        # Definisci Griglia
+        if not grid:
+            self.grid = (1, len(hasses))
+        else:
+            self.grid = grid
+        
+        assert self.grid[0] * self.grid[1] >= len(hasses)
+            
+        # definisci var
+        self.hasses = hasses
+        self.show_labels = show_labels
+        self.font_size = font_size
+        self.shape = shape
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+            
+        # Crea Finestra
+        self.root = tk.Tk()
+        self.root.geometry(str(shape[0])+'x'+str(shape[1]))
+        self.root.title('PoSet magicooooo')
+        self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')
+        self.canvas.pack(anchor=tk.CENTER, expand=True)
+        self.disegna()
+        self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
+        self.canvas.bind("<Configure>", self.resize)
+        self.root.mainloop()
+    
+    def resize(self, event):
+        self.shape = (event.width,event.height)
+        #self.root.geometry(str(self.shape[0])+'x'+str(self.shape[1]))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        # self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
+        self.disegna()
+            
+    def disegna(self):
+        self.canvas.delete("all")
+        for i,H in enumerate(self.hasses):
+            row = i // self.grid[1]
+            col = i % self.grid[1]
+            upper_left = (col * self.shape[0] / self.grid[1], row * self.shape[1] / self.grid[0])
+            
+            # Disegna linee
+            for i,(a,b) in enumerate(H.vertex):
+                if H.vertex_color[i] != 'black': #Diverso spessore
+                    self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
+                                            ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
+                                            width = 2, fill = H.vertex_color[i]
+                                            )
+                else:
+                    self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
+                                            ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
+                                            width = 1, fill = H.vertex_color[i]
+                        )
+            
+            # Disegna cerchi
+            for i,(fx,fy) in enumerate(H.nodes):
+                X = (col + fx) * self.W #X del cerchio
+                Y = (row +fy) * self.H #Y del cerchio
+                self.canvas.create_oval((X - H.r, Y - H.r),
+                                        (X + H.r, Y + H.r),
+                                        fill = H.nodes_color[i])
+                
+            # Aggiungi etichette
+                if self.show_labels:
+                    self.canvas.create_text(X,
+                                            Y +  H.r*2 + self.font_size/2 ,
+                                            font=f"Times {self.font_size}", text=H.labels[i])
+                    
+
+        
+# Funzione per gestire il movimento del mouse
+    def gestisci_movimento_mouse(self, evento):
+        # Individua punto nella griglia e conseguentemenete Hasse di riferimento
+        row = int(evento.y  // self.H)
+        col = int(evento.x  // self.W)
+        hasse_index = row*self.grid[1] + col
+
+        # relativizza posizione del mouse nel riquadro di interesse nella griglia 
+        mouse_x = evento.x % (self.shape[0] / self.grid[1])
+        mouse_y = evento.y % (self.shape[1] / self.grid[0])
+        
+        
+        # Trova cerchio
+        cerchio_selezionato = None
+        for i,node in enumerate(self.hasses[hasse_index].nodes):
+            if type(node) != tuple:
+                break
+            node_x, node_y = node[0] * self.W, node[1] * self.H
+            distanza_q = ((mouse_x - node_x)**2 + (mouse_y - node_y)**2)
+            if distanza_q <= self.hasses[hasse_index].r ** 2 * 2:
+                cerchio_selezionato = i
+                break
+
+        # Se un cerchio è stato selezionato, aggiorna la sua posizione
+        if cerchio_selezionato:
+          self.hasses[hasse_index].nodes[cerchio_selezionato] = (mouse_x / self.W, self.hasses[hasse_index].nodes[cerchio_selezionato][1])
+          #self.hasses[hasse_index].nodes[cerchio_selezionato]
+          self.disegna()
+   
+    
+    
+    
+    
+    
+    
+# Cluster on dataset 
+    
+class DataSet:
+    def __init__(self, Lattice : Lattice, freq):
+        """
+        Un dataset reticolare è un reticolo ma con associata una distribuzione di frequenza per ogni punto.
+        In sè è un oggetto diverso dal reticolo
+        """
+        assert len(freq) == len(Lattice)
+        self.L = Lattice
+        self.f = freq
+        
+    ## Costruire matrice di dominanze fuzzificate
+    def fuzzy_dom(self, func = 'boh'):
+        """
+        Su un dataset io non volgio lavorare con le dominanze assolut ma con le odminanze fuzzyificate
+        Questo comando genera un attributo dell'oggetto (fuz_dom) che rappresenta proprio questo.
+        Di base sono implementate _ modalità:
+        - ...
+        
+        in alternativa si può passare una funzione a piacere per misurare una dominanza fuzzy, 
+        la funzione deve essere di questo tipo: 
+        f(i,j,L) -> d \in [0,1]
+        Ovvero deve prendere tre input: due indici interi i,j ed un'oggeto reticolo. 
+        e restituisce un numero tra 0,1 che è appunto la dominanza fuzzificata
+        """
+        if type(func) == 'function':
+            self.fuz_dom = [[func(i,j,self.L) for i in range(len(self.L))] for j in range(len(self.L))]
+        elif func == 'boh':
+            self.fuz_dom = [[self.fuzzy_func_culo(i,j) for j in range(len(self.L))] for i in range(len(self.L))]
+            
+        else:
+            """
+            da definire alcune modalità base
+            """
+    
+    ## Costruire matrice di separation come 1 + \sum inb_{ikj}
+    def fuzzy_sep(self,t_norm = 'prod_t_norm', t_conorm = None):
+        """
+        La separation tra due punti in un reticolo è un'unità di misura della loro distanza.
+        Si basa sul principio che 
+        (a<b & a<k & k<b) or (b<a & b<k & k<a) => a<k<b or b<k<a.
+        In altre parole da dominanze e logica dire se un punto è in mezzo ad altri due. 
+        Con la logica fuzzy possiamo trasformare anche questo in un valore continuo tra zero ed uno invece che uno dicotomico
+        Le dominanze abbiamo già visto prima come farlo
+        Per gli operatori & e or esistono già le cosidette t_norm e t_conorme.
+        La t_norma può essere specificata come funzione, oppure una stringa che indica quelle già implementate: ...
+        
+        La separation non è altro che il numero (fuzzy) dei punti che stanno in mezzo a due osservazioni
+        """
+        if t_norm == 'prod_t_norm':
+            t_norm_func = DataSet.prod_t_norm
+            
+        elif t_norm == 'hamacher_t_norm':
+            t_norm_func = DataSet.hamacher_t_norm
+            
+        if not t_conorm:
+            t_conorm_func = lambda a,b: 1 - t_norm_func(1-a,1-b)
+         
+        elif type(t_conorm) == 'function':
+            t_conorm_func = t_conorm
+                
+        self.sep = [[0 for i in range(len(self.L))] for j in range(len(self.L))]
+        for i in range(len(self.L)):
+            for j in range(len(self.L)):
+                self.sep[i][j] = 1 #  - 1
+                for k in range(len(self.L)):
+                    # if k==i or k == j:
+                    #     continue
+                    # print(i,k,j)
+                    self.sep[i][j] +=t_conorm_func(
+                        (t_norm_func(t_norm_func(self.fuz_dom[i][j],self.fuz_dom[k][j]),self.fuz_dom[i][k])), # t_norm io suppongo sia assocciativa
+                        (t_norm_func(t_norm_func(self.fuz_dom[j][i],self.fuz_dom[k][i]),self.fuz_dom[j][k]))
+                    )
+
+    def calcola_sep_cluster(self,con, function = "max_separation"):
+        """
+        Calcola la separation in una cluster, di base viene usata la funzione __
+        altrimenti si può passare una funzione che deve avere la seguente struttura:
+        
+        function(cluster, freq, sep)
+        dove:
+        - cluster è un dizionario che associa a dei numeri (i cluster) liste di indici (elementi compresi).
+            ad esmepio cluster = {
+                0 : [0,1,2,7]
+                3 : [3,4,5]
+                6 : [6,8]
+            }
+            (per come ho strutturato le congruenze il numero del cluster corrisponde al più piccolo elemento che coniente, ma non è importante in questo passaggio)
+            
+        - freq è una lista di frequenze dei valori nella classe ad esempio
+            freq = [10, 2, 4 ,...]
+            indica ch la prima osservazione (quella con indice = 0) ha 10 occorenze, la seconda 2, etc.
+            
+        - sep è una matrice di separazione, dove sep[i][j] = separazione(i,j)
+        
+        SEGNATI QUESTO CONCETTO DELL'ALGORITMO:
+        1. Calcoli la miglior congruenza join-irriducibile
+        2. poi calcoli miglio congruenze che ottieni joinando questa con tutte quelle join-irriducibili non considerate
+        3. ripeti 2. finché non sei in un solo cluster!
+        Ogni congruenza può essere "codificata" come un binario di congruenze join-irriducibili necessarie a generarla
+        devo verificare che quella che ottengo è di fatto nuova, Non è scontato!
+        """
+        dizCluster = {}
+        for i, cluster in enumerate(con):
+            if i == cluster:
+                dizCluster[cluster] = [i]
+            else:
+                dizCluster[cluster] += [i]
+                
+        if function == "max_separation":
+            dizClusterFreq = {i : sum([self.f[j] for j in dizCluster[i]]) for i in dizCluster}
+            total_sep = 0
+            for cluster in dizCluster:
+                max_sep = 0
+                for i, e_1 in enumerate(dizCluster[cluster]):
+                    for e_2 in dizCluster[cluster][i+1:]:
+                        max_sep = max(max_sep, self.sep[e_1][e_2])
+                total_sep += max_sep * dizClusterFreq[cluster]
+            return total_sep
+        
+    def gerarchic_cluster(self, function_sep = "max_separation"):
+        """
+        Calcoliamo una cluster gerarchica, questo comando restituisce due liste:
+        - La prima è la lista di congruenze risultanti dalla cluster gerarchica
+        - La seoncda è la lista di separation assocciata ad ogni congruenza
+        
+        L'algoritmo è valido ma devo formalizzarlo perchè non è totalmente scontato. non sto salendo sopra chi mi copre,
+        potrei fare così ma secondo me questo è più efficiente perchè altrimenti dovrei calcolare tutto ConL per trovare chi mi copre
+        Il disegno lo fa sembrare facile ma nella pratica è lentissimo
+        """
+        clusters = []
+        separations = []
+        irriducibile_clusters = self.L.congruenze_join_irriducibili()
+        # irriducibile_clusters_onehot = [
+        #     [1 if pl.confronta_blocchi(a,b) else 0 for b in irriducibile_clusters]
+        #     for a in irriducibile_clusters
+        # ]
+        actual_cluster = [i for i in range(len(self.L))]
+        clusters = [actual_cluster]
+        separations = [0]
+        while sum(actual_cluster) != 0:
+            best_next_cluster = None
+            min_sep = 0
+            for con in irriducibile_clusters:
+                if not confronta_blocchi(con,actual_cluster):
+                    nex_cluster = unisci_congruenze(con,actual_cluster)
+                    nex_sep = self.calcola_sep_cluster(nex_cluster)
+                    if best_next_cluster:
+                        if nex_sep < min_sep:
+                            best_next_cluster = nex_cluster
+                            min_sep = nex_sep
+                    else:
+                        best_next_cluster = nex_cluster
+                        min_sep = nex_sep
+            actual_cluster = best_next_cluster
+            clusters.append(best_next_cluster)
+            separations.append(min_sep)
+        return clusters, separations
+
+    # Funzioni di dominanza fuzzy
+    def fuzzy_func_culo(self,i,j):
+        if i == j:
+            # da definire
+            return 1
+        
+        elif self.L.domination_matrix[j][i]:# or i==j: # Devo chiedere al proge a farla "stretta" poi domanderò al profe
+            return 0
+        
+        elif self.L.domination_matrix[i][j]:
+            return 1
+
+        else:
+            return len(self.L.index_downset(i) & self.L.index_downset(j)) / len(self.L.index_downset(j))
+        
+
+    #   Funzioni t_norm
+    def prod_t_norm(a,b):
+        return a*b
+    
+    def hamacher_t_norm(a,b):
+        if a == b and a == 0:
+            return 0
+        else:
+            return a*b / (a + b - a*b) 
+    
+    
+
     """
     SFIDE FUTURE
     1. [x] Sistemare le parentesi nel prodotto di Reticoli / Poset. è una cosa sbatti utile ma problematica 
