@@ -1545,11 +1545,9 @@ class Finestra():
                     self.canvas.create_text(X,
                                             Y +  H.r*2 + self.font_size/2 ,
                                             font=f"Times {self.font_size}", text=H.labels[i])
-                    
-
-        
-# Funzione per gestire il movimento del mouse
+                     
     def gestisci_movimento_mouse(self, evento):
+        """Funzione per gestire il movimento del mouse"""
         # Individua punto nella griglia e conseguentemenete Hasse di riferimento
         row = int(evento.y  // self.H)
         col = int(evento.x  // self.W)
@@ -1563,8 +1561,6 @@ class Finestra():
         # Trova cerchio
         cerchio_selezionato = None
         for i,node in enumerate(self.hasses[hasse_index].nodes):
-            if type(node) != tuple:
-                break
             node_x, node_y = node[0] * self.W, node[1] * self.H
             distanza_q = ((mouse_x - node_x)**2 + (mouse_y - node_y)**2)
             if distanza_q <= self.hasses[hasse_index].r ** 2 * 2:
@@ -1572,17 +1568,69 @@ class Finestra():
                 break
 
         # Se un cerchio è stato selezionato, aggiorna la sua posizione
-        if cerchio_selezionato:
+        if cerchio_selezionato != None:
           self.hasses[hasse_index].nodes[cerchio_selezionato] = (mouse_x / self.W, self.hasses[hasse_index].nodes[cerchio_selezionato][1])
           #self.hasses[hasse_index].nodes[cerchio_selezionato]
           self.disegna()
    
     
-    
-    
-    
-    
-    
+class DinamicCongruences(Finestra):  
+    def __init__(self,*hasses,shape : tuple = (500,500), congruence_lattice, grid = None, show_labels = False, font_size = 12):
+        # Definisci Griglia
+        if not grid:
+            self.grid = (1, len(hasses))
+        else:
+            self.grid = grid
+        
+        assert self.grid[0] * self.grid[1] >= len(hasses)
+            
+        # definisci var
+        self.ConL = congruence_lattice
+        self.hasses = hasses
+        self.show_labels = show_labels
+        self.font_size = font_size
+        self.shape = shape
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+            
+        # Crea Finestra
+        self.root = tk.Tk()
+        self.root.geometry(str(shape[0])+'x'+str(shape[1]))
+        self.root.title('PoSet magicooooo')
+        self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')
+        self.canvas.pack(anchor=tk.CENTER, expand=True)
+        self.disegna()
+        self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
+        self.canvas.bind('<Motion>',self.show_con)
+        self.canvas.bind("<Configure>", self.resize)
+        self.root.mainloop()
+        
+    def show_con(self, evento):
+        row = int(evento.y  // self.H)
+        col = int(evento.x  // self.W)
+        hasse_index = row*self.grid[1] + col
+        if hasse_index == 0:
+            # Vogliamo farlo solo per CONL che è hasses[1]!!
+            return
+        # relativizza posizione del mouse nel riquadro di interesse nella griglia 
+        mouse_x = evento.x % (self.shape[0] / self.grid[1])
+        mouse_y = evento.y % (self.shape[1] / self.grid[0])
+        
+        # Trova cerchio
+        cerchio_selezionato = None
+        for i,node in enumerate(self.hasses[hasse_index].nodes):
+            node_x, node_y = node[0] * self.W, node[1] * self.H
+            distanza_q = ((mouse_x - node_x)**2 + (mouse_y - node_y)**2)
+            if distanza_q <= self.hasses[hasse_index].r ** 2 * 2:
+                cerchio_selezionato = i
+                break
+
+            
+        # Se un cerchio è stato selezionato, mostra la relativa Congruenza
+        if cerchio_selezionato != None: # figa e lo 0??
+            self.hasses[0].show_congruence(self.ConL[cerchio_selezionato])
+            self.disegna()
+            
 # Cluster on dataset 
     
 class DataSet:
@@ -1634,12 +1682,17 @@ class DataSet:
         La separation non è altro che il numero (fuzzy) dei punti che stanno in mezzo a due osservazioni
         """
         if t_norm == 'prod_t_norm':
-            t_norm_func = DataSet.prod_t_norm
+            t_norm_func = lambda a,b: a*b
+            t_conorm_func = lambda a,b: a + b - a*b
+            
+        elif t_norm == "min_t_norm":
+            t_norm_func = lambda a,b: min(a,b)
+            t_conorm_func = lambda a,b: max(a,b)
             
         elif t_norm == 'hamacher_t_norm':
             t_norm_func = DataSet.hamacher_t_norm
             
-        if not t_conorm:
+        elif not t_conorm: # elif perchè nelgi altri casi t_conorm è definit
             t_conorm_func = lambda a,b: 1 - t_norm_func(1-a,1-b)
          
         elif type(t_conorm) == 'function':
@@ -1767,7 +1820,7 @@ class DataSet:
         if a == b and a == 0:
             return 0
         else:
-            return a*b / (a + b - a*b) 
+            return  (a + ba*b / - a*b) 
     
     
 

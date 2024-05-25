@@ -16,13 +16,14 @@ for i in range(len(hasses)):
     #                            'white' if j in Reticoli[i+1].index_meet_irriducibili() else
     #                            'grey'  for j in range(len(hasses[i+1].nodes))]
 
-pl.Finestra(*hasses, shape = (1200,800), grid = (3,3), show_labels=False)
+if False:
+    pl.Finestra(*hasses, shape = (1200,800), grid = (3,3), show_labels=False)
 
 
-A = pl.Lattice.from_cw(2,3,2)
-pl.Finestra(pl.Hasse(*A.hasse_coordinate()),
-           pl.Hasse(*A.CongruenceLattice().hasse_coordinate()),
-           shape = (700,700), show_labels=True)
+    A = pl.Lattice.from_cw(2,3,2)
+    pl.Finestra(pl.Hasse(*A.hasse_coordinate()),
+               pl.Hasse(*A.CongruenceLattice().hasse_coordinate()),
+               shape = (700,700), show_labels=True)
 
 
 
@@ -37,14 +38,23 @@ freq = [randint(0,10) for i in range(len(L))]
 L.labels = [f'{f}' for l,f in zip(L,freq)]
 
 
-L = pl.Lattice.from_cw(2,2,3,2,4,2)
+cover = [
+    [0, 0, 0, 0],
+    [1, 0, 1, 0],
+    [1, 0, 1, 0],
+    [0, 0, 0, 0]
+]
+L = pl.Lattice.from_cw(4,4,4,4) 
+
+
+L.hasse()
 freq = [randint(0,10) for i in range(len(L))]
 D = pl.DataSet(L,freq)
 start = time()
 D.fuzzy_dom()
 D.fuzzy_sep()
 clusters, separations = D.gerarchic_cluster()
-print(f'Tempo: {time()-start}')
+print(f'Tempo gerarchico: {time()-start}')
 #pene
 
 
@@ -65,22 +75,22 @@ print(f'Tempo: {time()-start}')
 
 
 
+start = time()
 ConL = D.L.CongruenceLattice()
 ConL.labels = [str(round(D.calcola_sep_cluster(con),2)) for con in ConL]
 
 indici = [ConL.obj.index(c) for c in clusters]
 vertexes = [(min(indici[i], indici[i+1]) ,max(indici[i], indici[i+1]))for i in range(len(clusters)-1)]
-print(sorted(vertexes))
+
 H1 = pl.Hasse(*D.L.hasse_coordinate(), radius = 3)
 H2 = pl.Hasse(*ConL.hasse_coordinate(), radius = 3)
-print(H1)
-print(sorted(vertexes))
-print(sorted(H2.vertex))
+
 H2.vertex_color = ['orange' if a in vertexes else 'black' for a in H2.vertex]
-print(H2.nodes, H2.vertex, H2.vertex_color, sep = '\n\n')
+print(f'Tempo complessivo: {time()-start}')
 pl.Finestra(H1,H2, shape = (1400,800), show_labels = True, font_size = 15)
 
 nblocchi = [pl.numero_blocchi(con) for con in clusters]
+
 
 print(nblocchi,separations, sep = '\n\n')
 

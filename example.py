@@ -1,8 +1,11 @@
 import pyLattice.pyLattice as pl
 
-pl.Lattice.from_power_set(5).hasse(shape = (300,300))
-
-mostra_grafici = False
+A = pl.Lattice.from_cw(2,2)
+C = A.CongruenceLattice()
+D = pl.DinamicCongruences(pl.Hasse(*A.hasse_coordinate(),radius=10),  pl.Hasse(*C.hasse_coordinate(), radius = 10),
+                          congruence_lattice =C, shape = (800,800))
+pene
+mostra_grafici = True
 ## Construct a PoSet
 ### From a domination matrix
                     #  a  b  c  d  e 
