@@ -1,11 +1,35 @@
 import pyLattice.pyLattice as pl
 from random import randint
 from time import time
+c = [
+    [0,0,0,0],
+    [1,0,0,0], 
+    [1,0,0,0],
+    [0,0,1,0]
+]
+P = pl.PoSet.from_cover_matrix(c)
 
-Reticoli = [pl.Lattice.from_cw(randint(2,7),randint(2,7)) for n in range(2,11)]
-print(len(Reticoli))
-hasses = [pl.Hasse(*A.hasse_coordinate(), radius = 3) for A in Reticoli]
+P = P * P
+L = P.dedekind_completetion()
+L = L + pl.Lattice([[1]]) + L
+L = pl.Lattice.from_cw(3,2,2)
+L.hasse()
+colors = ['yellow' if (i in L.index_join_irriducibili() and i in L.index_meet_irriducibili()) else "black" if i in L.index_join_irriducibili() else "white" if i in L.index_meet_irriducibili() else "grey" for i in range(len(L))]
+H = pl.Hasse(*L.hasse_coordinate(),nodes_color = colors, radius = 5)
+C = L.CongruenceLattice()
+colors_b = ['yellow' if (i in C.index_join_irriducibili() and i in C.index_meet_irriducibili()) else "black" if i in C.index_join_irriducibili() else "white" if i in C.index_meet_irriducibili() else "grey" for i in range(len(C))]
 
+F = pl.DinamicCongruences(H, pl.Hasse(*C.hasse_coordinate(),nodes_color = colors_b, radius = 5), congruence_lattice=C, shape = (1500,800), show_labels=True)
+# H.nodes_color = ['yellow' if i in L.index_upset(5) else 'red' if i in L.index_downset(5) else 'grey' for i in range(len(L))]
+L = pl.Lattice.from_cw(3,3)
+H = pl.Hasse(*L.hasse_coordinate(),nodes_color = colors, radius = 5)
+for j in range(min(len(L),5)):
+    H.nodes_color = ['blue' if  (i in L.index_downset(j) and i in L.index_join_irriducibili()) else 'red' if i == j else 'grey' for i in range(len(L))]
+    F = pl.Finestra(H)
+    
+D = pl.DataSet(L,[1 for i in L])
+print(D.gerarchic_cluster()[0])
+## è perfetto, ho tutte le potenzialità, dovrò solo trovare un'interfacia dinamica carina
 def get_color(vertex, con):
     return ['red' if con[a] == con[b] else 'black' for a,b in vertex]
 
@@ -44,11 +68,9 @@ cover = [
     [1, 0, 1, 0],
     [0, 0, 0, 0]
 ]
-L = pl.Lattice.from_cw(4,4,4,4) 
-
-
-L.hasse()
-freq = [randint(0,10) for i in range(len(L))]
+L = pl.Lattice.from_cw(2,10) 
+freq = [1 for i in range(len(L))]
+L.labels = [str(f) for f in freq]
 D = pl.DataSet(L,freq)
 start = time()
 D.fuzzy_dom()
@@ -56,7 +78,8 @@ D.fuzzy_sep()
 clusters, separations = D.gerarchic_cluster()
 print(f'Tempo gerarchico: {time()-start}')
 #pene
-
+C = L.CongruenceLattice()
+A = pl.DinamicCongruences(pl.Hasse(*L.hasse_coordinate()), pl.Hasse(*C.hasse_coordinate()),congruence_lattice=C,shape =(1200,800) )
 
 
 # print('dom')

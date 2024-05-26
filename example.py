@@ -1,10 +1,31 @@
 import pyLattice.pyLattice as pl
+from random import randint
+import time as t
 
-A = pl.Lattice.from_cw(2,2)
-C = A.CongruenceLattice()
-D = pl.DinamicCongruences(pl.Hasse(*A.hasse_coordinate(),radius=10),  pl.Hasse(*C.hasse_coordinate(), radius = 10),
-                          congruence_lattice =C, shape = (800,800))
-pene
+def count_unique(con):
+    s = 0
+    for i,j in enumerate(con):
+        if i==j:
+            s+=1
+    return s
+
+A = pl.Lattice.from_cw(3,2)
+freq = [randint(0,10) for i in range(len(A))]
+D = pl.DataSet(A,freq,t_norm_function='min')
+print(*D.sep,sep = '\n')
+print()
+D = pl.DataSet(A,freq,t_norm_function='prod')
+print(*D.sep,sep = '\n')
+print()
+D = pl.DataSet(A,freq,t_norm_function='prod',t_conorm_function=lambda a,b: max(a,b))
+print(*D.sep,sep = '\n')
+
+
+quit()
+# C = A.CongruenceLattice()
+# D = pl.DinamicCongruences(pl.Hasse(*A.hasse_coordinate(),radius=10),  pl.Hasse(*C.hasse_coordinate(), radius = 10),
+#                           congruence_lattice =C, shape = (800,800), show_labels= True, font_size= 15)
+# pene
 mostra_grafici = True
 ## Construct a PoSet
 ### From a domination matrix

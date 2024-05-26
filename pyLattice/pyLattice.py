@@ -721,31 +721,74 @@ class PoSet:
             return None
             #raise ValueError("meet non definito") #devo guardare come si creano gli errori #devo differenziare tra "non esiste" e "ambiguo"
         
-    def index_upset(self,*a):
+    def index_upset(self,*a, strict : bool = False):
         """
         Identica alla funzione upset ma invece che richiedere un elemento del poset chiede solo il suo indice
         """
-        if len(a) == 0:
-            return {i for i in range(len(self))} # l'upset di un set vuoto è tutto
-        if len(a) == 1: 
-            upset = {i for i,r in enumerate(self.domination_matrix[a[0]]) if r }
-            return upset
+        if strict:
+            if len(a) == 0:
+                return {i for i in range(len(self))} # l'upset di un set vuoto è tutto
+            if len(a) == 1: 
+                upset = {i for i,r in enumerate(self.domination_matrix[a[0]]) if r and i!=a[0]}
+                return upset
+            else:
+                return self.index_upset(a[0], strict = True) & self.index_upset(*a[1:], strict = True) #
         else:
-            return self.index_upset(a[0]) & self.index_upset(*a[1:])
+            if len(a) == 0:
+                return {i for i in range(len(self))} # l'upset di un set vuoto è tutto
+            if len(a) == 1: 
+                upset = {i for i,r in enumerate(self.domination_matrix[a[0]]) if r }
+                return upset
+            else:
+                return self.index_upset(a[0]) & self.index_upset(*a[1:]) # Ma io allora non ho capito niente, io uso l'intersezione ma dovrei utilizzare l'unione
     
-    def index_downset(self,*a):
+    def real_index_upset(self,*a, strict : bool = False):
+        """
+        Vero upset: ovvero UNIONE degli upset dei singoli elementi, non l'intersezione
+        In più ho aggiunto un parametro booleano strict per indicare se usare la dominanza stretta o classica
+        (utile per alcune funzioni di fuzzyficazione)
+        """
+        if strict:
+            if len(a) == 0:
+                return {i for i in range(len(self))} # l'upset di un set vuoto è tutto
+            if len(a) == 1: 
+                upset = {i for i,r in enumerate(self.domination_matrix[a[0]]) if (r and i!=a[0])}
+                return upset
+            else:
+                return self.real_index_upset(a[0], strict = strict) | self.real_index_upset(*a[1:], strict = strict) # Ma io allora non ho capito niente, io uso l'intersezione ma dovrei utilizzare l'unione
+
+        else:
+            if len(a) == 0:
+                return {i for i in range(len(self))} # l'upset di un set vuoto è tutto
+            if len(a) == 1: 
+                upset = {i for i,r in enumerate(self.domination_matrix[a[0]]) if r }
+                return upset
+            else:
+                return self.real_index_upset(a[0], strict = strict) | self.real_index_upset(*a[1:], strict = strict) # Ma io allora non ho capito niente, io uso l'intersezione ma dovrei utilizzare l'unione
+    
+    def index_downset(self,*a, strict : bool = False):
         """
         Identica alla funzione downset ma invece che richiedere un elemento del poset chiede solo il suo indice
         """
+        if strict:
+            if len(a) == 0:
+                return {i for i in range(len(self))} # il down set di un set vuoto è tutto
 
-        if len(a) == 0:
-            return {i for i in range(len(self))} # il down set di un set vuoto è tutto
+            if len(a) == 1:
+                downset = {i for i,r in enumerate(self.domination_matrix) if r[a[0]] and i != a[0]}
+                return downset
+            else:
+                return self.index_downset(a[0], strict=True) & self.index_downset(*a[1:],strict=True)
         
-        if len(a) == 1:
-            downset = {i for i,r in enumerate(self.domination_matrix) if r[a[0]]}
-            return downset
-        else:
-            return self.index_downset(a[0]) & self.index_downset(*a[1:])
+        else:   
+            if len(a) == 0:
+                return {i for i in range(len(self))} # il down set di un set vuoto è tutto
+
+            if len(a) == 1:
+                downset = {i for i,r in enumerate(self.domination_matrix) if r[a[0]]}
+                return downset
+            else:
+                return self.index_downset(a[0]) & self.index_downset(*a[1:])
         
     def index_max_sub_set(self,set):
         """
@@ -1117,6 +1160,7 @@ class PoSet:
         vertex = [(i,j)  for i in range(len(self)) for j in range(i+1,len(self)) if self.cover_matrix[i][j] or self.cover_matrix[j][i]]
         
         return nodes, vertex, self.labels
+
            
 class Lattice(PoSet):
     ## Personal Function
@@ -1453,8 +1497,8 @@ class Lattice(PoSet):
         Componente wise (chain product)
         """
         return Lattice.from_function(genera_cw(lista),component_wise)
-    
-    
+   
+#### Rappresentation class   
 class Hasse():
     def __init__(self, nodes, vertex, labels, radius = 2, vertex_color = None, nodes_color = None):
         self.nodes = nodes
@@ -1631,10 +1675,10 @@ class DinamicCongruences(Finestra):
             self.hasses[0].show_congruence(self.ConL[cerchio_selezionato])
             self.disegna()
             
-# Cluster on dataset 
-    
+
+# DataSet annd cluster class
 class DataSet:
-    def __init__(self, Lattice : Lattice, freq):
+    def __init__(self, Lattice : Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
         """
         Un dataset reticolare è un reticolo ma con associata una distribuzione di frequenza per ogni punto.
         In sè è un oggetto diverso dal reticolo
@@ -1643,33 +1687,111 @@ class DataSet:
         self.L = Lattice
         self.f = freq
         
-    ## Costruire matrice di dominanze fuzzificate
-    def fuzzy_dom(self, func = 'boh'):
-        """
-        Su un dataset io non volgio lavorare con le dominanze assolut ma con le odminanze fuzzyificate
-        Questo comando genera un attributo dell'oggetto (fuz_dom) che rappresenta proprio questo.
-        Di base sono implementate _ modalità:
-        - ...
+        #Fuzzy dom
+        if fuzzy_domination_function == 'BrueggemannLerche':
+            self.fuz_dom = self.BrueggemannLerche()
         
-        in alternativa si può passare una funzione a piacere per misurare una dominanza fuzzy, 
-        la funzione deve essere di questo tipo: 
-        f(i,j,L) -> d \in [0,1]
-        Ovvero deve prendere tre input: due indici interi i,j ed un'oggeto reticolo. 
-        e restituisce un numero tra 0,1 che è appunto la dominanza fuzzificata
-        """
-        if type(func) == 'function':
-            self.fuz_dom = [[func(i,j,self.L) for i in range(len(self.L))] for j in range(len(self.L))]
-        elif func == 'boh':
-            self.fuz_dom = [[self.fuzzy_func_culo(i,j) for j in range(len(self.L))] for i in range(len(self.L))]
+        elif fuzzy_domination_function == 'LLEs':
+            self.fuz_dom = self.LLEs()
             
-        else:
-            """
-            da definire alcune modalità base
-            """
+        elif type(fuzzy_domination_function) == 'function':
+            self.fuz_dom = fuzzy_domination_function(self.L)
+            
+        # T Norm
+        if t_norm_function == 'prod':
+            self.t_norm_func = lambda a,b: a*b
+            self.t_conorm_func = lambda a,b: a+b - a*b
+            
+        elif t_norm_function == "min":
+            self.t_norm_func = lambda a,b: min(a,b)
+            self.t_conorm_func = lambda a,b: max(a,b)
+            
+        elif t_norm_function == 'hamacher_t_norm':
+            pass
+  
+        elif type(t_norm_function) == 'function':
+            self.t_norm_func = t_norm_function
+            self.t_conorm_func = lambda a,b: 1-self.t_norm_func(1-a,1-b)
+            
+        # T_conorm function
+        if type(t_conorm_function) == 'function':
+            self.t_conorm_func = t_conorm_function
+
+        self.sep = self.compute_separation()
+        
+    # funzioni di fuzzy dominanza
+    def BrueggemannLerche(self):
+        fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
+        for i in range(len(self.L)):
+            for j in range(i+1,len(self.L)):
+                if self.L.domination_matrix[i][j]:
+                    fuz_dom[i][j] = 1
+                    fuz_dom[j][i] = 0
+                elif self.L.domination_matrix[j][i]:
+                    fuz_dom[i][j] = 0
+                    fuz_dom[j][i] = 1
+                else:
+                    num_ij = len(self.L.index_upset(i) & ({k for k in range(len(self.L))} - self.L.index_upset(j))) + 1
+                    den_ij = len(self.L.index_downset(i) & ({k for k in range(len(self.L))} - self.L.index_downset(j))) + 1
+                    a_ij = num_ij / den_ij
+                    
+                    num_ji = len(self.L.index_upset(j) & ({k for k in range(len(self.L))} - self.L.index_upset(i))) + 1
+                    den_ji =len(self.L.index_downset(j) & ({k for k in range(len(self.L))} - self.L.index_downset(i))) + 1
+                    a_ji = num_ji / den_ji
+                    
+                    d_ij = a_ij / (a_ij + a_ji)
+                    fuz_dom[i][j] = d_ij
+                    fuz_dom[j][i] = 1 - d_ij
+        return fuz_dom
+        
+    def LLEs(slef):
+        """
+        Da implementare, non è così semplice
+        """
+        pass
     
+
     ## Costruire matrice di separation come 1 + \sum inb_{ikj}
+    def in_beetwen(self, a,k,b):
+        """
+        Calcola la in_beetwen a < k < b
+        """
+        return self.t_conorm_func(
+            self.t_norm_func(self.t_norm_func(self.fuz_dom[a][b],self.fuz_dom[a][k]),self.fuz_dom[k][b]),
+            self.t_norm_func(self.t_norm_func(self.fuz_dom[b][a],self.fuz_dom[k][a]),self.fuz_dom[b][k])
+        )
+    
+    def compute_separation(self):
+        """
+        Calcola la separation nel dataset, per ora è 
+        implementata in maniera stupida perchè devo verificare che rispetti tutti gli assiomi,
+        dopo lo modificherò per evitare calcoli inutili.
+        In teoria sò già che sep_{ii} = 0, e che sep_{ij} = 1 - sep_{ji}
+        """
+        separation = [[0 for i in range(len(self.L))] for j in range(len(self.L))]
+        for i in range(len(self.L)):
+            for j in range(i+1,len(self.L)):
+                sep = 1
+                for k in range(len(self.L)):
+                    sep += self.in_beetwen(i,k,j)
+                separation[i][j] = sep
+                separation[j][i] = sep
+        if False:
+            # Quella che segue è la versione di separation senza nessuna ottimizzazione teorica, ovvero:
+            # - non assumo a priori che sep_ii = 0
+            # - non assumo a priori che sep_ij = sep_ji
+            # può essere molto utile per verificare che le funzioni che utilizzo rispettino certe premesse
+            for i in range(len(self.L)):
+                for j in range(len(self.L)):
+                    sep = self.fuz_dom[i][j] + self.fuz_dom[j][i]
+                    for k in range(len(self.L)):
+                        sep += self.in_beetwen(i,k,j)
+                    separation[i][j] = sep
+        return separation
+    
     def fuzzy_sep(self,t_norm = 'prod_t_norm', t_conorm = None):
         """
+        ### OBSOLETO
         La separation tra due punti in un reticolo è un'unità di misura della loro distanza.
         Si basa sul principio che 
         (a<b & a<k & k<b) or (b<a & b<k & k<a) => a<k<b or b<k<a.
@@ -1690,9 +1812,14 @@ class DataSet:
             t_conorm_func = lambda a,b: max(a,b)
             
         elif t_norm == 'hamacher_t_norm':
-            t_norm_func = DataSet.hamacher_t_norm
-            
-        elif not t_conorm: # elif perchè nelgi altri casi t_conorm è definit
+            pass
+            #Da implementare seriamente
+            #t_norm_func = DataSet.hamacher_t_norm
+        
+        elif type(t_norm) == 'function':
+            t_norm_func = t_norm
+        
+        if not t_conorm: # elif perchè nelgi altri casi t_conorm è definit
             t_conorm_func = lambda a,b: 1 - t_norm_func(1-a,1-b)
          
         elif type(t_conorm) == 'function':
@@ -1796,22 +1923,7 @@ class DataSet:
             separations.append(min_sep)
         return clusters, separations
 
-    # Funzioni di dominanza fuzzy
-    def fuzzy_func_culo(self,i,j):
-        if i == j:
-            # da definire
-            return 1
-        
-        elif self.L.domination_matrix[j][i]:# or i==j: # Devo chiedere al proge a farla "stretta" poi domanderò al profe
-            return 0
-        
-        elif self.L.domination_matrix[i][j]:
-            return 1
-
-        else:
-            return len(self.L.index_downset(i) & self.L.index_downset(j)) / len(self.L.index_downset(j))
-        
-
+     
     #   Funzioni t_norm
     def prod_t_norm(a,b):
         return a*b
@@ -1823,7 +1935,9 @@ class DataSet:
             return  (a + ba*b / - a*b) 
     
     
-
+    
+    
+    
     """
     SFIDE FUTURE
     1. [x] Sistemare le parentesi nel prodotto di Reticoli / Poset. è una cosa sbatti utile ma problematica 
