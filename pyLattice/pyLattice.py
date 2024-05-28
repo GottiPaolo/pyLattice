@@ -1515,12 +1515,15 @@ class Hasse():
         else:
             self.vertex_color = vertex_color
             
-    def show_congruence(self, con):
-        self.vertex_color = ['red' if con[a] == con[b] else 'black' for a,b in self.vertex]
+    def show_congruence(self, con, color = 'red'):
+        self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
         
+    def show_percorso(self, nodes, color ='red'):
+        self.vertex_color =[color if (x in nodes and x!= nodes[-1] and nodes[nodes.index(x)+1] == y) or (y in nodes and y!= nodes[-1] and nodes[nodes.index(y)+1] == x) else 'black' for x,y in self.vertex]
+
 
 class Finestra():
-    def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12):
+    def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12, title = 'PosetMagico'):
         # Definisci Griglia
         if not grid:
             self.grid = (1, len(hasses))
@@ -1540,7 +1543,7 @@ class Finestra():
         # Crea Finestra
         self.root = tk.Tk()
         self.root.geometry(str(shape[0])+'x'+str(shape[1]))
-        self.root.title('PoSet magicooooo')
+        self.root.title(title)
         self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')
         self.canvas.pack(anchor=tk.CENTER, expand=True)
         self.disegna()
@@ -1617,9 +1620,9 @@ class Finestra():
           #self.hasses[hasse_index].nodes[cerchio_selezionato]
           self.disegna()
    
-    
+
 class DinamicCongruences(Finestra):  
-    def __init__(self,*hasses,shape : tuple = (500,500), congruence_lattice, grid = None, show_labels = False, font_size = 12):
+    def __init__(self,*hasses,shape : tuple = (500,500), congruence_lattice, grid = None, show_labels = False, font_size = 12, title = 'PoSet'):
         # Definisci Griglia
         if not grid:
             self.grid = (1, len(hasses))
@@ -1640,7 +1643,7 @@ class DinamicCongruences(Finestra):
         # Crea Finestra
         self.root = tk.Tk()
         self.root.geometry(str(shape[0])+'x'+str(shape[1]))
-        self.root.title('PoSet magicooooo')
+        self.root.title(title)
         self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')
         self.canvas.pack(anchor=tk.CENTER, expand=True)
         self.disegna()
@@ -1674,17 +1677,16 @@ class DinamicCongruences(Finestra):
         if cerchio_selezionato != None: # figa e lo 0??
             self.hasses[0].show_congruence(self.ConL[cerchio_selezionato])
             self.disegna()
-            
-
+                 
 # DataSet annd cluster class
-class DataSet:
-    def __init__(self, Lattice : Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
+class DataSet():
+    def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
         """
-        Un dataset reticolare è un reticolo ma con associata una distribuzione di frequenza per ogni punto.
-        In sè è un oggetto diverso dal reticolo
+        Un dataset è un reticolo ma con associata una distribuzione di frequenza per ogni punto.
+
         """
-        assert len(freq) == len(Lattice)
-        self.L = Lattice
+        assert len(freq) == len(Lat)
+        self.L = Lat
         self.f = freq
         
         #Fuzzy dom
@@ -1694,7 +1696,7 @@ class DataSet:
         elif fuzzy_domination_function == 'LLEs':
             self.fuz_dom = self.LLEs()
             
-        elif type(fuzzy_domination_function) == 'function':
+        elif callable(fuzzy_domination_function):
             self.fuz_dom = fuzzy_domination_function(self.L)
             
         # T Norm
@@ -1706,16 +1708,18 @@ class DataSet:
             self.t_norm_func = lambda a,b: min(a,b)
             self.t_conorm_func = lambda a,b: max(a,b)
             
-        elif t_norm_function == 'hamacher_t_norm':
-            pass
+        elif t_norm_function == 'hamacher':
+            self.t_norm_func = lambda a,b: (a*b)/(a+b-a*b) if (a!=0 or b!=0) else 0
+            self.t_conorm_func = lambda a,b: (a+b)/(1+a*b) #Einstein sum
   
-        elif type(t_norm_function) == 'function':
+        elif callable(t_norm_function):
             self.t_norm_func = t_norm_function
             self.t_conorm_func = lambda a,b: 1-self.t_norm_func(1-a,1-b)
             
         # T_conorm function
-        if type(t_conorm_function) == 'function':
+        if callable(t_conorm_function):
             self.t_conorm_func = t_conorm_function
+
 
         self.sep = self.compute_separation()
         
@@ -1744,13 +1748,57 @@ class DataSet:
                     fuz_dom[j][i] = 1 - d_ij
         return fuz_dom
         
-    def LLEs(slef):
+    def LLEs(self):
         """
         Da implementare, non è così semplice
         """
-        pass
+        fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
+        k = len(self.L[0])
+        
+        if True:
+            for i,a in enumerate(self.L):
+                for _,b in enumerate(self.L[i+1:]):
+                    j = _ + i + 1
+                    k1 = sum([1 for x,y in zip(a,b) if x < y])
+                    k2 = sum([1 for x,y in zip(a,b) if x == y])
+                    
+                    fuzzy_dom_ab = 0
+                    for s in range(k2 + 1):
+                        primo_termine = 1
+                        for pt in range(k2 - s + 1, k2 + 1):
+                            primo_termine*=pt
+                            
+                        secondo_termine = 1
+                        for pt in range(k-s,k):
+                            secondo_termine*=pt
+                        fuzzy_dom_ab += primo_termine/secondo_termine
+                    fuzzy_dom_ab *= k1/k
+                    fuz_dom[i][j] = fuzzy_dom_ab
+                    fuz_dom[j][i] = 1 - fuzzy_dom_ab
+        else:
+            # Versione estesa
+            for i,a in enumerate(self.L):
+                for j,b in enumerate(self.L):
+                    if i == j :
+                        continue
+                    k1 = sum([1 for x,y in zip(a,b) if x < y])
+                    k2 = sum([1 for x,y in zip(a,b) if x == y])
+                    
+                    fuzzy_dom_ab = 0
+                    for s in range(k2 + 1):
+                        primo_termine = 1
+                        for pt in range(k2 - s + 1, k2 + 1):
+                            primo_termine*=pt
+                            
+                        secondo_termine = 1
+                        for pt in range(k-s,k):
+                            secondo_termine*=pt
+                        fuzzy_dom_ab += primo_termine/secondo_termine
+                    fuzzy_dom_ab *= k1/k
+                    fuz_dom[i][j] = fuzzy_dom_ab
+                    
+        return fuz_dom
     
-
     ## Costruire matrice di separation come 1 + \sum inb_{ikj}
     def in_beetwen(self, a,k,b):
         """
@@ -1763,9 +1811,7 @@ class DataSet:
     
     def compute_separation(self):
         """
-        Calcola la separation nel dataset, per ora è 
-        implementata in maniera stupida perchè devo verificare che rispetti tutti gli assiomi,
-        dopo lo modificherò per evitare calcoli inutili.
+        Calcola la separation nel dataset, per ora è ottimizzata ma 
         In teoria sò già che sep_{ii} = 0, e che sep_{ij} = 1 - sep_{ji}
         """
         separation = [[0 for i in range(len(self.L))] for j in range(len(self.L))]
@@ -1789,102 +1835,7 @@ class DataSet:
                     separation[i][j] = sep
         return separation
     
-    def fuzzy_sep(self,t_norm = 'prod_t_norm', t_conorm = None):
-        """
-        ### OBSOLETO
-        La separation tra due punti in un reticolo è un'unità di misura della loro distanza.
-        Si basa sul principio che 
-        (a<b & a<k & k<b) or (b<a & b<k & k<a) => a<k<b or b<k<a.
-        In altre parole da dominanze e logica dire se un punto è in mezzo ad altri due. 
-        Con la logica fuzzy possiamo trasformare anche questo in un valore continuo tra zero ed uno invece che uno dicotomico
-        Le dominanze abbiamo già visto prima come farlo
-        Per gli operatori & e or esistono già le cosidette t_norm e t_conorme.
-        La t_norma può essere specificata come funzione, oppure una stringa che indica quelle già implementate: ...
-        
-        La separation non è altro che il numero (fuzzy) dei punti che stanno in mezzo a due osservazioni
-        """
-        if t_norm == 'prod_t_norm':
-            t_norm_func = lambda a,b: a*b
-            t_conorm_func = lambda a,b: a + b - a*b
-            
-        elif t_norm == "min_t_norm":
-            t_norm_func = lambda a,b: min(a,b)
-            t_conorm_func = lambda a,b: max(a,b)
-            
-        elif t_norm == 'hamacher_t_norm':
-            pass
-            #Da implementare seriamente
-            #t_norm_func = DataSet.hamacher_t_norm
-        
-        elif type(t_norm) == 'function':
-            t_norm_func = t_norm
-        
-        if not t_conorm: # elif perchè nelgi altri casi t_conorm è definit
-            t_conorm_func = lambda a,b: 1 - t_norm_func(1-a,1-b)
-         
-        elif type(t_conorm) == 'function':
-            t_conorm_func = t_conorm
-                
-        self.sep = [[0 for i in range(len(self.L))] for j in range(len(self.L))]
-        for i in range(len(self.L)):
-            for j in range(len(self.L)):
-                self.sep[i][j] = 1 #  - 1
-                for k in range(len(self.L)):
-                    # if k==i or k == j:
-                    #     continue
-                    # print(i,k,j)
-                    self.sep[i][j] +=t_conorm_func(
-                        (t_norm_func(t_norm_func(self.fuz_dom[i][j],self.fuz_dom[k][j]),self.fuz_dom[i][k])), # t_norm io suppongo sia assocciativa
-                        (t_norm_func(t_norm_func(self.fuz_dom[j][i],self.fuz_dom[k][i]),self.fuz_dom[j][k]))
-                    )
-
-    def calcola_sep_cluster(self,con, function = "max_separation"):
-        """
-        Calcola la separation in una cluster, di base viene usata la funzione __
-        altrimenti si può passare una funzione che deve avere la seguente struttura:
-        
-        function(cluster, freq, sep)
-        dove:
-        - cluster è un dizionario che associa a dei numeri (i cluster) liste di indici (elementi compresi).
-            ad esmepio cluster = {
-                0 : [0,1,2,7]
-                3 : [3,4,5]
-                6 : [6,8]
-            }
-            (per come ho strutturato le congruenze il numero del cluster corrisponde al più piccolo elemento che coniente, ma non è importante in questo passaggio)
-            
-        - freq è una lista di frequenze dei valori nella classe ad esempio
-            freq = [10, 2, 4 ,...]
-            indica ch la prima osservazione (quella con indice = 0) ha 10 occorenze, la seconda 2, etc.
-            
-        - sep è una matrice di separazione, dove sep[i][j] = separazione(i,j)
-        
-        SEGNATI QUESTO CONCETTO DELL'ALGORITMO:
-        1. Calcoli la miglior congruenza join-irriducibile
-        2. poi calcoli miglio congruenze che ottieni joinando questa con tutte quelle join-irriducibili non considerate
-        3. ripeti 2. finché non sei in un solo cluster!
-        Ogni congruenza può essere "codificata" come un binario di congruenze join-irriducibili necessarie a generarla
-        devo verificare che quella che ottengo è di fatto nuova, Non è scontato!
-        """
-        dizCluster = {}
-        for i, cluster in enumerate(con):
-            if i == cluster:
-                dizCluster[cluster] = [i]
-            else:
-                dizCluster[cluster] += [i]
-                
-        if function == "max_separation":
-            dizClusterFreq = {i : sum([self.f[j] for j in dizCluster[i]]) for i in dizCluster}
-            total_sep = 0
-            for cluster in dizCluster:
-                max_sep = 0
-                for i, e_1 in enumerate(dizCluster[cluster]):
-                    for e_2 in dizCluster[cluster][i+1:]:
-                        max_sep = max(max_sep, self.sep[e_1][e_2])
-                total_sep += max_sep * dizClusterFreq[cluster]
-            return total_sep
-        
-    def gerarchic_cluster(self, function_sep = "max_separation"):
+    def gerarchic_cluster(self, function_sep = "total_separation"):
         """
         Calcoliamo una cluster gerarchica, questo comando restituisce due liste:
         - La prima è la lista di congruenze risultanti dalla cluster gerarchica
@@ -1894,49 +1845,95 @@ class DataSet:
         potrei fare così ma secondo me questo è più efficiente perchè altrimenti dovrei calcolare tutto ConL per trovare chi mi copre
         Il disegno lo fa sembrare facile ma nella pratica è lentissimo
         """
-        clusters = []
-        separations = []
-        irriducibile_clusters = self.L.congruenze_join_irriducibili()
-        # irriducibile_clusters_onehot = [
-        #     [1 if pl.confronta_blocchi(a,b) else 0 for b in irriducibile_clusters]
-        #     for a in irriducibile_clusters
-        # ]
-        actual_cluster = [i for i in range(len(self.L))]
-        clusters = [actual_cluster]
+        if function_sep == "total_separation":
+            function_sep = lambda par: self.total_separation(par)
+            
+        elif function_sep == "max_separation":
+            function_sep = lambda par: self.max_separation(par)
+
+        else:
+            assert callable(function_sep)
+        irriducibile_con = self.L.congruenze_join_irriducibili()
+ 
+        actual_con = [i for i in range(len(self.L))]
+        history_con = [actual_con]
         separations = [0]
-        while sum(actual_cluster) != 0:
-            best_next_cluster = None
+        while sum(actual_con) != 0:
+            best_next_con = None
             min_sep = 0
-            for con in irriducibile_clusters:
-                if not confronta_blocchi(con,actual_cluster):
-                    nex_cluster = unisci_congruenze(con,actual_cluster)
-                    nex_sep = self.calcola_sep_cluster(nex_cluster)
-                    if best_next_cluster:
+            for con in irriducibile_con:
+                if not confronta_blocchi(con,actual_con):
+                    nex_con = unisci_congruenze(con,actual_con)
+                    nex_sep = function_sep(DataSet.as_partition(nex_con))
+                    if best_next_con:
                         if nex_sep < min_sep:
-                            best_next_cluster = nex_cluster
+                            best_next_con = nex_con
                             min_sep = nex_sep
                     else:
-                        best_next_cluster = nex_cluster
+                        best_next_con = nex_con
                         min_sep = nex_sep
-            actual_cluster = best_next_cluster
-            clusters.append(best_next_cluster)
+            actual_con = best_next_con
+            history_con.append(actual_con)
             separations.append(min_sep)
-        return clusters, separations
-
+        return history_con, separations
+  
+    def as_partition(con):
+        """
+        converte una congruenza in una partizione, mi semplifica parecchio i calcoli:
+        una congruenza è una lista del tipo L[i] = k --> x_i \in k
+        una partizione è una lista di liste P[i] = [i,k]
+        """
+        diz_indici = {}
+        partizione = []
+        for i,x in enumerate(con):
+            if i == x:
+                diz_indici[x] = len(partizione)
+                partizione.append([i])
+            else:
+                partizione[diz_indici[x]].append(i)
+        return partizione
+            
      
-    #   Funzioni t_norm
-    def prod_t_norm(a,b):
-        return a*b
+    # Funzioni di disomogeneità di una partizione
     
-    def hamacher_t_norm(a,b):
-        if a == b and a == 0:
-            return 0
-        else:
-            return  (a + ba*b / - a*b) 
+    def total_separation(self,partition):
+        """
+        La separation totale di una partizione è definita come la somma delle separazioni internee ai gruppi, ovvero:
+        sep_g = \sum_{a,b\in G} sep(a,b) * f_a * f_b
+        """
+        tot_sep = 0
+        for gruppo in partition:
+            for i,a in enumerate(gruppo):
+                for b in gruppo[i+1:]:
+                    tot_sep += self.sep[a][b] * self.f[a] * self.f[b]    
+        return tot_sep
     
+    def max_separation(self,partition):
+        tot_sep = 0
+        for gruppo in partition:
+            sep_max = 0
+            for i,a in enumerate(gruppo):
+                for b in gruppo[i+1:]:
+                    sep_max = max(sep_max, self.sep[a][b]) 
+            tot_sep +=  sep_max * len(gruppo)
+        return tot_sep
+       
+       
+    # Support and estetic
     
+    def show_fuz_dom(self, decimal = 2):
+        for riga in self.fuz_dom:
+            print(*[f"{r:.{decimal}f}" for r in riga],sep = ' , ')
+            
+    def show_sep(self, decimal = 2):
+        for riga in self.sep:
+            print(*[f"{r:.{decimal}f}" for r in riga],sep = ' , ')
+        
+    def __len__(self):
+        return len(self.L)
     
-    
+    def __getitem__(self,index):
+        return self.L[index]
     
     """
     SFIDE FUTURE
