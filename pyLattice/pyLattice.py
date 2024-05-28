@@ -2,17 +2,6 @@ import numpy as np
 import p5
 import tkinter as tk
 #### Hasse
-dinamic_congruence = False
-
-def mappa(x,a,b,A,B):
-    """
-    Funzione per convertire in maniera lineare un valore x assunto in un range (a,b) in un valore in range (A,B)
-    Secondo la formual : (x-a)/(b-a) = (X-A)/(B-A) --> X = (x-a)/(b-a)*(B-A)+A
-    
-    """
-    if a==b:
-        return (A+B)/2
-    return (x-a)/(b-a)*(B-A)+A
 
 def get_riga_punto(cover_matrix,p,righe):
     if righe[p]:
@@ -139,232 +128,6 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
       
     return x,y
      
-## p5
-
-def get_coor(righe,colonne,r,min_x,max_x,min_y,max_y,hasse_mode = 4):
-    """
-    Dai dati elementari di un PoSet (righe, colonne e margini della finestra)
-    restituiscee un dizionario con le coordinate dei punti
-    """
-    dizCoor = {}
-    for i,(riga,colonna) in enumerate(zip(righe,colonne)):
-        dizCoor[i] = converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode=hasse_mode)
-    return dizCoor
-
-def PoSet_to_show(*PoSet, grid = None, hasse_mode = 4, show_labels = True):
-    """
-    Funzione che globalizza i dati dei PoSet da mostrare
-    WIDTH, HEIGHT non sono utilizzati solo perchè sono un pirla (o forse c'era un motivo)
-    La griglia è calcolata per essere alta due e lunga n//2 escluso il caso in cui vengano passati due PoSet, in quel caso
-    Sono affiancati orizzontalemnte
-    """
-    global PoSets, Griglia, WIDTH, HEIGHT, HASSE_MODE, Show_labels
-    PoSets = PoSet
-    HASSE_MODE = hasse_mode
-    if not grid:
-        Griglia = (1 , len(PoSet))
-    else:
-        Griglia = grid
-    Show_labels = show_labels
-        
-    WIDTH, HEIGHT = 500,500
-
-def get_dati(Pi,min_x,max_x,min_y,max_y):
-    """
-    Funzione compatta per ottenere tutti i dati da un PoSet ed i margini della finestra in cui mostrarlo
-    """
-    righe = get_righe(Pi.cover_matrix)
-    colonne = get_colonne(righe)
-    radius = min(((max_y-min_y))/(max(righe)+1),(max_x-min_x)/(max(colonne)+1))
-    radius *= 0.4
-    t_size = radius *0.5 # *0.3
-    if radius > 15:
-        radius = 15
-    if radius < 7:
-        radius = 7
-    if t_size < 20:
-        t_size = 20
-    elif t_size > 40:
-        t_size = 40
-    dizCoor = get_coor(righe,colonne,radius,min_x,max_x,min_y,max_y, hasse_mode=HASSE_MODE)
-    return radius, t_size, dizCoor
-
-def rappresenta(Pi):
-    """
-    Funzione che rappresenta un PoSet partando dal dizionario globalizzato dei dati dizPi
-    """
-    radius, t_size, dizCoor = dizPi[Pi]
-    for p in range(len(Pi.cover_matrix)):
-        for b in range(len(Pi.cover_matrix)):
-            if Pi.cover_matrix[p][b]:
-                if not Pi.blocchi:
-                    p5.stroke(0)
-                    p5.strokeWeight(1)
-                    p5.line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
-                elif Pi.blocchi[p] == Pi.blocchi[b]:
-                    p5.stroke(255,0,0)
-                    p5.strokeWeight(3)
-                    p5.line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
-                    p5.strokeWeight(1)
-                else:
-                    p5.stroke(0)
-                    p5.strokeWeight(1)
-                    p5.line(dizCoor[p][0],dizCoor[p][1],dizCoor[b][0],dizCoor[b][1])
-                    
-    for p in range(len(Pi.cover_matrix)):
-        #p5.noStroke()
-        p5.stroke(0)
-        p5.fill(130)
-        p5.ellipse(dizCoor[p][0],dizCoor[p][1],radius,radius)
-        p5.fill(0)
-        if Show_labels:
-            p5.text_size(t_size)
-            p5.text(Pi.labels[p],dizCoor[p][0]-(len(Pi.labels[p])//2*t_size*0.5),
-                    dizCoor[p][1]+radius*2+t_size/2)
-
-def setup():
-    """
-    Funzione di base di p5 dei calcoli da fare per generare la finestra
-    """
-    global dizPi, selected, WIDTH, HEIGHT
-    p5.background(255)
-    p5.size(WIDTH, HEIGHT)
-    dizPi = {}
-    selected = False
-    for i,Pi in enumerate(PoSets):    
-        min_x = (i %  Griglia[1]) * width / Griglia[1] 
-        min_y = (i //  Griglia[1]) * height / Griglia[0] 
-        max_x = min_x + width / Griglia[1] 
-        max_y = min_y + height / Griglia[0] 
-        #radius, t_size, dizCoor = get_dati(Pi.cover_matrix,min_x,min_x+500,min_y,min_y+500)
-        dizPi[Pi] = get_dati(Pi,min_x,max_x,min_y, max_y)
-        rappresenta(Pi)
-
-def draw():
-    global selected, dinamic_congruence
-    """
-    Funzione di base di p5 che defiinisce il loop dell'animazione
-    """
-    p5.background(255)
-    for Pi in PoSets:
-        rappresenta(Pi)
-
-    ### MUOVI IN MANIERA DINAMICA
-    if mouse_is_pressed and mouse_button == p5.LEFT:
-        griglia_x = mouse_x // (width / Griglia[0])
-        griglia_y = mouse_y // (height / Griglia[1])
-        indice = int(griglia_y*Griglia[0] + griglia_x)
-        for p in range(len(dizPi[PoSets[indice]][2])):
-            if p5.dist((mouse_x,mouse_y),dizPi[PoSets[indice]][2][p]) < dizPi[PoSets[indice]][0]:
-                p5.noFill()
-                p5.strokeWeight(4)
-                p5.stroke(255,0,0)
-                p5.ellipse(*dizPi[PoSets[indice]][2][p], 
-                        dizPi[PoSets[indice]][0],dizPi[PoSets[indice]][0])
-                dizPi[PoSets[indice]][2][p] = (mouse_x,dizPi[PoSets[indice]][2][p][1])
-                break
-        
-    if dinamic_congruence:
-        for i,c in enumerate(PoSets[1]):
-            if p5.dist((mouse_x,mouse_y),dizPi[PoSets[1]][2][i]) * 2 < dizPi[PoSets[1]][0]:
-                PoSets[0].blocchi = c #Questa struttura non mi piace, devo separare la rappresentazione dalla variabile.
-                #i blocchi non devono essere un'entità del PoSet!
-      
-def mouse_pressed():
-    """
-    funzione di p5 da azionare quando premo il mouse
-    la uso solo per applicare le congruenze
-    """
-    global PoSets, WIDTH, HEIGHT, dizPi, selected
-    if dinamic_congruence and mouse_button == p5.RIGHT and PoSets[0].blocchi:
-        Pi = PoSets[0].apply_congruence(PoSets[0].blocchi)
-        ConL = Pi.CongruenceLattice()
-        PoSets = (Pi, ConL)
-        WIDTH, HEIGHT = width / 2, height / 2
-        # Duplico il contenuto di setup perchè per ora non ho modi migliori, ma non va bene. 
-        # Ci deve essere un modo intelligente per chiamarlo. Ho pure creato le variabili WIDTH, HEIGHT apposta
-        dizPi = {}
-        selected = False
-        for i,Pi in enumerate(PoSets):    
-            min_x = (i %  Griglia[1]) * width / Griglia[1] 
-            min_y = (i //  Griglia[1]) * height / Griglia[0] 
-            max_x = min_x + width / Griglia[1] 
-            max_y = min_y + height / Griglia[0] 
-            #radius, t_size, dizCoor = get_dati(Pi.cover_matrix,min_x,min_x+500,min_y,min_y+500)
-            dizPi[Pi] = get_dati(Pi,min_x,max_x,min_y, max_y)
-            rappresenta(Pi)
-
-# tk
-def single_hasse_diagram(cover_matrix, canvas, rect, radius = None, hasse_mode = 4,
-                         labels = None, t_size = None):
-    if radius:
-        RADIUS = radius
-    else:
-        RADIUS = 5 #troverò un metodo migliore
-        
-    if t_size:
-        fontSize = t_size
-    else:
-        fontSize = 10
-    
-    # Lo farò ma quando trovero un modo intelligente. Non a cazzo di cane
-    # if not colors:
-    #     colors = ['grey' for i in cover_matrix]
-    # else:
-    #     colors = [("grey", "yellow", "cyan", "magenta", "red", "blue", "black")[i] for i in colors]
-               
-    righe = get_righe(cover_matrix)
-    colonne = get_colonne(righe)
-    coordinate = [converti(r,c,RADIUS,righe,*rect,hasse_mode = hasse_mode) for i,(r,c) in enumerate(zip(righe,colonne))]
-
-    for i, riga in enumerate(cover_matrix):
-        for j, value in enumerate(riga):
-            if value:
-                canvas.create_line(coordinate[i],coordinate[j])
-
-    for i,(x,y) in enumerate(coordinate):
-        canvas.create_oval((x - RADIUS, y - RADIUS),
-                           (x + RADIUS, y + RADIUS),
-                           fill = 'grey')
-        if labels:
-            canvas.create_text(x,y + RADIUS*2 + fontSize/2 ,font=f"Times {fontSize}",
-                            text=labels[i])
-        
-def hasse_diagram(PoSets , grid = None, shape:tuple = None, radius = None, hasse_mode = 2, 
-                  title = 'PoSet', labels = False, t_size = None, save_ps = False):
-    """
-    Crea una finestra tk-inter con il diagramma di hasse non dinamico di un poset.
-    """
-    if shape:
-        WIDTH,HEIGHT = shape
-    else:
-        WIDTH,HEIGHT = 500,500
-        
-    if not grid:
-        grid = (1,len(PoSets))
-    #Crea finestra
-    root = tk.Tk()
-    root.geometry(str(WIDTH)+'x'+str(HEIGHT))
-    root.title(title)
-    canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg='white')
-    canvas.pack(anchor=tk.CENTER, expand=True)
-    
-    for i,P in enumerate(PoSets):
-        riga = i // grid[1]
-        col  = i % grid[1]
-        if labels:
-            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[1], (col  + 1) * WIDTH / grid[1],
-                                                            riga * HEIGHT / grid[0], (riga + 1) * HEIGHT / grid[0]), 
-                             radius = radius, hasse_mode = hasse_mode, labels = P.labels, t_size=t_size)
-        else:
-            single_hasse_diagram(P.cover_matrix,canvas, rect = (col  * WIDTH / grid[1], (col  + 1) * WIDTH / grid[1],
-                                                            riga * HEIGHT / grid[0], (riga + 1) * HEIGHT / grid[0]), 
-                             radius = radius, hasse_mode = hasse_mode, t_size=t_size)
-
-    if save_ps:
-        canvas.postscript(file = f'{title}.ps',colormode = 'color')
-    
-    root.mainloop()
 
 #### Congruence Function
 def unisci(a,b,blocchi):
@@ -1095,27 +858,7 @@ class PoSet:
                         labels[i] = self.labels[j]
             return Lattice.from_function(cuts,lambda a,b: a<= b, labels=labels)
         return Lattice.from_function(cuts,lambda a,b: a<= b)
-
-    def hasse(*PoSets, grid = None, shape:tuple = None, radius = None, hasse_mode = 3, title = 'PoSet', 
-              labels = False, t_size = None, save_ps = False):
-        
-        hasse_diagram(PoSets, grid = grid, shape = shape, radius = radius, hasse_mode=hasse_mode, title = title, 
-                      labels=labels, t_size = t_size, save_ps = save_ps)
-                    #  shape,radius,hasse_mode,title)   
-        # assert grid[1] * grid[0] >= len(self)
-        # for P in PoSets:
-        #     hasse_diagram(P.cover_matrix,shape,radius,hasse_mode,title)    
-     
-    def hasse_p5(*PoSets, grid = None, hasse_mode = 4, labels = True):
-        """
-        Funzione per creare la finestra interattiva che rappresenta il poset
-        (giuro che le cambiero nome)
-        """
-        PoSet_to_show(*PoSets, grid = grid,hasse_mode = hasse_mode ,show_labels = labels)
-        #get_dati(self.cover_matrix,list(map(lambda x: str(x),self.obj)))
-        p5.run(renderer="skia",sketch_setup=setup,sketch_draw=draw)
-       
-     
+      
     def restituiscimi_cover_matrix(self) -> None:
         for i,k in enumerate(self.cover_matrix):
             if i ==0 :
@@ -1131,37 +874,59 @@ class PoSet:
         self.obj = [str(i) for i in range(len(self))]
         self.labels = [str(i) for i in range(len(self))]
         
-    def hasse_coordinate(self,W = 1,H = 1):
-        """
-        Questa funzione restituisce i dati per rappresentare un diagramma 
-        di hasse del poset in una finestra di ampiezza W x H
-        
-        restituisce due elementi: 
-        - _nodes_: Lista tuple con le coordinate dei pallina della finestra [(x_0,y_0), (x_1,y_1),...]
-        - _vertex_Lista di tuple dei vertici da collegare : [(0,1), (0,2),...]
-        
-        
-        Voglio trovare un modo intelligente per rendererlo customizzarbile, attualmente il diagramma di hasse è costruito con i seguenti step logici
-        - le righe dei punti vengono individuate nella seguente maniera:
-            - se non ti copre nessuno -> 0
-            - altrimenti --> max(righe di chi ti copre) + 1
-        - le colonne sono semplici numeri progressivi non ripetuti a parità di riga
-        - La disposizione nella finestra segue queste regole 
-            - Lungo l'asse verticale i punti hanno una distanza uguale più mezza di questa distanza dai bordi
-            - Lungo l'asse orizzontale come sopra, con la differenza che la distanza (gap) cambia in base al numero di punti 
-        
-        """
-        
+    # Hasse semi-def     
+    def get_hasse_variables(self,labels = None, radius = 3, font_size = 12, vertex_color = None,
+                            nodes_color = None, stroke_weights = None):
         rows = get_righe(self.cover_matrix)
         cols = get_colonne(righe = rows)
-        gaps_x = [W/rows.count(x) for x in rows]
-        gap_y = H / (max(rows)+1) # più uno perchè conto da 0
-        nodes = [((c+0.5)*gap_x, (r+0.5)*gap_y) for r,c,gap_x in zip(rows,cols,gaps_x)]
-        vertex = [(i,j)  for i in range(len(self)) for j in range(i+1,len(self)) if self.cover_matrix[i][j] or self.cover_matrix[j][i]]
+        gaps_x = [rows.count(x) ** -1 for x in rows]
+        gap_y = (max(rows)+1) ** -1
+        self.nodes = [((c+0.5)*gap_x, (r+0.5)*gap_y) for r,c,gap_x in zip(rows,cols,gaps_x)]
+        self.vertex = [(i,j)  for i in range(len(self)) for j in range(i+1,len(self)) if self.cover_matrix[i][j] or self.cover_matrix[j][i]]
+        self.r = radius
+        self.font_size = font_size
         
-        return nodes, vertex, self.labels
-
-           
+        if vertex_color:
+            self.vertex_color = vertex_color
+        else:
+            self.vertex_color = ['black' for v in self.vertex]
+        
+        if nodes_color:
+            self.nodes_color = nodes_color
+        else:
+            self.nodes_color = ['grey' for v in self.nodes]
+            
+        if stroke_weights:
+            stroke_weights = [1 for v in self.vertex]
+            
+        if not labels:
+            self.labels = [str(x) for x in self.obj]
+        else:
+            self.labels = labels
+                 
+    def hasse(*PoSets, shape : tuple = (500,500), grid: tuple = None, show_labels : bool = False, 
+                   title = 'PoSet', init = True):
+        """
+        Come distinguo tra l'aspetto grafico e quello concettuale
+        """
+        if init:
+            for P in PoSets:
+                P.get_hasse_variables()
+        Finestra(*PoSets, shape = shape, grid = grid, show_labels=show_labels, title = title)
+ 
+    def show_percorso(self, nodes, color ='red'):
+        self.vertex_color =[color if (x in nodes and x!= nodes[-1] and nodes[nodes.index(x)+1] == y) or (y in nodes and y!= nodes[-1] and nodes[nodes.index(y)+1] == x) else 'black' for x,y in self.vertex]
+       
+    def show_nodes(self, nodes, color = 'black', as_index = True):
+        if as_index:
+            self.nodes_color = [color if i in nodes else self.nodes_color[i] for i in range(len(self))]
+        else:
+            self.nodes_color = [color if i in nodes else self.nodes_color[i] for i in range(self)]
+            
+    def show_congruence(self, con, color = 'red'):
+        self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
+        
+   
 class Lattice(PoSet):
     ## Personal Function
     def join(self,*args):
@@ -1335,8 +1100,10 @@ class Lattice(PoSet):
                 blocks[a] = [i]
             else:
                 blocks[a].append(i)
-                
-        labels = list(map(lambda x:' '.join(map(lambda c:self.labels[c],x)),blocks.values()))
+        
+        print(blocks.values())
+        labels = list(map(lambda x:' '.join(map(lambda c:str(self.labels[c]),x)),blocks.values()))
+        #labels = list(map(lambda x:' '.join(map(lambda c:str(self.obj[c]),x)),blocks.values())) #obj o labels ? 
         matrix = np.eye(len(blocks))
         
         for i,v in enumerate(blocks):
@@ -1348,7 +1115,7 @@ class Lattice(PoSet):
                         elif self.domination_matrix[b][a]:
                             matrix[j+i+1][i] = 1
 
-        return Lattice(matrix,labels = labels)
+        return Lattice(matrix,X = labels)
   
     def calcola_congruenza(self,a,b):
         """
@@ -1370,11 +1137,11 @@ class Lattice(PoSet):
                             # Se i e j sono in relazione
                             # allora tutto ciò con cui k è in relazione
                             # lo è anche con i, e viceversa
-                            if blocchi[i]==blocchi[k] and blocchi[k]!=blocchi[j]:
+                            if blocchi[i] == blocchi[k] and blocchi[k] != blocchi[j]:
                                 blocchi = unisci(j,k,blocchi)
                                 cambiamenti = True
 
-                            if blocchi[j]==blocchi[k] and blocchi[k]!=blocchi[i]:
+                            if blocchi[j] == blocchi[k] and blocchi[k] != blocchi[i]:
                                 blocchi = unisci(i,k,blocchi)
                                 cambiamenti = True
 
@@ -1387,7 +1154,7 @@ class Lattice(PoSet):
 
                             meet_i = self.index_meet(i,k)
                             meet_j = self.index_meet(j,k)
-                            if blocchi[meet_i]!=blocchi[meet_j]:
+                            if blocchi[meet_i] != blocchi[meet_j]:
                                 blocchi = unisci(meet_i,meet_j,blocchi)
                                 cambiamenti = True
         # self.blocchi = blocchi Può sembrare comoda questa cosa ma mi porta ad un problema:
@@ -1397,9 +1164,10 @@ class Lattice(PoSet):
     
     def congruenze_elementari(self):
         """UFFICIALMENTE DEPRECATO
+        Deprecato perchè ho ristretto ancora l'insieme delle congruenze necessarie alle congruenze join_irriducibili!
+        (non grazie a me, ahimé ma grazie a questo paper: COMPUTING CONGRUENCE LATTICES OF FINITE LATTICES RALPH FREESE)
         Calcola le congruenze che ho definito _elementari_ cioè quelle che uniscono i blocchi a e b, tali che a \prec b
         
-        Ora credo di poterlo migliorare passando alle congruenze join_irriducibili
         """
         elementar_congruenze = [] #NON INSERISCO L'identità: list(range(len(self))) potrei farlo ma allunga il calcolo di all
         for i in range(len(self)):
@@ -1425,7 +1193,7 @@ class Lattice(PoSet):
     
     def all_congruenze(self):
         """
-        Calcola tutte congruenze combinando quelle elementari (adesso in beta combinando quelle join-irriducibili)
+        Calcola tutte congruenze combinando quelle elementari (adesso combinando quelle join-irriducibili)
         """
         # all_congruenze = self.congruenze_elementari()
         all_congruenze = self.congruenze_join_irriducibili()
@@ -1449,18 +1217,23 @@ class Lattice(PoSet):
             return Lattice.from_function(a,confronta_blocchi,labels = [str(numero_blocchi(c)) for c in a])
         else:
             return Lattice.from_function(a,confronta_blocchi)
-        
-    def dinamic_congruences(self,Con_labels = False, labels = True, p_con_labels = None):
-        global dinamic_congruence
-        dinamic_congruence = True
-        if not p_con_labels:
-            self.hasse_p5(self.CongruenceLattice(Con_labels), labels = labels)
-        else:
-            ConL = self.CongruenceLattice()
-            ConL.labels = p_con_labels
-            self.hasse_p5(ConL, labels = labels)
-        dinamic_congruence = False 
-        
+         
+    #### Hasse
+    def show_irriducible(self):
+        """
+        Mostra tutti gli elementi join irriducibili
+        """
+        J_ = self.index_join_irriducibili()
+        M_ = self.index_meet_irriducibili()
+        self.show_nodes(J_,'yellow')
+        self.show_nodes(M_,'red')
+        self.show_nodes([i for i in J_ if i in M_],'orange') 
+    
+    def dinamic_congruences(self, shape : tuple = (500,500), grid: tuple = None, 
+                                 show_labels : bool = False, title = 'PoSet', init = True, 
+                                 ConL = None):    
+        Finestra(self,shape = shape, grid = grid, show_labels = show_labels,  title = title, dinamic_con = True, ConL = ConL)
+ 
     #### Special Lattice
     def from_power_set(n):
         """
@@ -1498,33 +1271,15 @@ class Lattice(PoSet):
         """
         return Lattice.from_function(genera_cw(lista),component_wise)
    
-#### Rappresentation class   
-class Hasse():
-    def __init__(self, nodes, vertex, labels, radius = 2, vertex_color = None, nodes_color = None):
-        self.nodes = nodes
-        self.vertex = vertex
-        self.r = radius
-        self.labels = labels
-        if not nodes_color:
-            self.nodes_color = ['grey' for i in self.nodes]
-        else:
-            self.nodes_color = nodes_color
-            
-        if not vertex_color:
-            self.vertex_color = ['black' for i in self.vertex]
-        else:
-            self.vertex_color = vertex_color
-            
-    def show_congruence(self, con, color = 'red'):
-        self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
-        
-    def show_percorso(self, nodes, color ='red'):
-        self.vertex_color =[color if (x in nodes and x!= nodes[-1] and nodes[nodes.index(x)+1] == y) or (y in nodes and y!= nodes[-1] and nodes[nodes.index(y)+1] == x) else 'black' for x,y in self.vertex]
-
 
 class Finestra():
-    def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12, title = 'PosetMagico'):
+    def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12, title = 'PosetMagico', dinamic_con = False, ConL = None):
         # Definisci Griglia
+        if dinamic_con:
+            if not ConL:
+                C = hasses[0].CongruenceLattice()
+                C.get_hasse_variables()
+                hasses= [*hasses] + [C]
         if not grid:
             self.grid = (1, len(hasses))
         else:
@@ -1549,8 +1304,10 @@ class Finestra():
         self.disegna()
         self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
         self.canvas.bind("<Configure>", self.resize)
+        if dinamic_con:
+            self.canvas.bind('<Motion>',self.show_con)
         self.root.mainloop()
-    
+               
     def resize(self, event):
         self.shape = (event.width,event.height)
         #self.root.geometry(str(self.shape[0])+'x'+str(self.shape[1]))
@@ -1564,8 +1321,7 @@ class Finestra():
         for i,H in enumerate(self.hasses):
             row = i // self.grid[1]
             col = i % self.grid[1]
-            upper_left = (col * self.shape[0] / self.grid[1], row * self.shape[1] / self.grid[0])
-            
+
             # Disegna linee
             for i,(a,b) in enumerate(H.vertex):
                 if H.vertex_color[i] != 'black': #Diverso spessore
@@ -1590,8 +1346,8 @@ class Finestra():
             # Aggiungi etichette
                 if self.show_labels:
                     self.canvas.create_text(X,
-                                            Y +  H.r*2 + self.font_size/2 ,
-                                            font=f"Times {self.font_size}", text=H.labels[i])
+                                            Y +  H.r*2 + H.font_size/2 ,
+                                            font=f"Times {H.font_size}", text=H.labels[i])
                      
     def gestisci_movimento_mouse(self, evento):
         """Funzione per gestire il movimento del mouse"""
@@ -1620,38 +1376,6 @@ class Finestra():
           #self.hasses[hasse_index].nodes[cerchio_selezionato]
           self.disegna()
    
-
-class DinamicCongruences(Finestra):  
-    def __init__(self,*hasses,shape : tuple = (500,500), congruence_lattice, grid = None, show_labels = False, font_size = 12, title = 'PoSet'):
-        # Definisci Griglia
-        if not grid:
-            self.grid = (1, len(hasses))
-        else:
-            self.grid = grid
-        
-        assert self.grid[0] * self.grid[1] >= len(hasses)
-            
-        # definisci var
-        self.ConL = congruence_lattice
-        self.hasses = hasses
-        self.show_labels = show_labels
-        self.font_size = font_size
-        self.shape = shape
-        self.W = self.shape[0] / self.grid[1]
-        self.H = self.shape[1] / self.grid[0]
-            
-        # Crea Finestra
-        self.root = tk.Tk()
-        self.root.geometry(str(shape[0])+'x'+str(shape[1]))
-        self.root.title(title)
-        self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')
-        self.canvas.pack(anchor=tk.CENTER, expand=True)
-        self.disegna()
-        self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
-        self.canvas.bind('<Motion>',self.show_con)
-        self.canvas.bind("<Configure>", self.resize)
-        self.root.mainloop()
-        
     def show_con(self, evento):
         row = int(evento.y  // self.H)
         col = int(evento.x  // self.W)
@@ -1675,9 +1399,16 @@ class DinamicCongruences(Finestra):
             
         # Se un cerchio è stato selezionato, mostra la relativa Congruenza
         if cerchio_selezionato != None: # figa e lo 0??
-            self.hasses[0].show_congruence(self.ConL[cerchio_selezionato])
+            self.hasses[0].show_congruence(self.hasses[1][cerchio_selezionato])
             self.disegna()
-                 
+ 
+    def identifica_punto(self,x,y):
+        """
+        funzione che dalla x e dalla y del mouse restituisce l'indice del poset di riferimento e del punto di riferimento
+        lo farl in futuro
+        """
+        pass
+                      
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -1893,9 +1624,7 @@ class DataSet():
                 partizione[diz_indici[x]].append(i)
         return partizione
             
-     
     # Funzioni di disomogeneità di una partizione
-    
     def total_separation(self,partition):
         """
         La separation totale di una partizione è definita come la somma delle separazioni internee ai gruppi, ovvero:
