@@ -1,9 +1,13 @@
 import numpy as np
 import p5
 import tkinter as tk
-#### Hasse
+#### Hasse functions
 
 def get_riga_punto(cover_matrix,p,righe):
+    """
+    funzione per ottenere la riga di un punto in un diagramma di Hasse a partire dalle righe note e dalla matrice di copertura
+    Questa funzione sfrutta la ricorsività,
+    """
     if righe[p]:
         return righe[p]
     
@@ -44,7 +48,11 @@ def get_colonne(righe):
 
 def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     """
-    funzoine per convertire i punti da righe e colonna discretizzate a coordinate nella finestra
+    Questa funzione è ufficialmente obsoleta e inutilizzata, 
+    Per ora voglio mantenerala per avere lo spunto per fare qualche improvmnet futur
+    con diversi opzionoi di diagramma di Hasse, si basava sulla funzione mappa che ho rimosso ma semplicemente
+    mappa(a,min,max,MIN,MAX) = (a - min) / (max - min) * (MAX - MIN) + MIN
+    chiaramente con un attenzione per i casi estremi: if min == max reutrn 0.5 * (MAX - MIN) + MIN
     """
     if hasse_mode == 0:
         y = mappa(riga,-0.5,max(righe) + 0.5,min_y,max_y-r)
@@ -128,17 +136,26 @@ def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
       
     return x,y
      
-
+def mappa(x,old_min,old_max,new_min,new_max):
+    """
+    Funzione per mappare un valore da un intervallo ad un altro
+    Di fatto INUTILIZZATA mi serviva in "converti" che è obsoleta
+    """
+    if old_min==old_max:
+        return 0.5 * (new_max - new_min) + new_min
+    else:
+        return (x - old_min) / (old_max - old_min) * (new_max - new_min) + new_min
+        
 #### Congruence Function
 def unisci(a,b,blocchi):
     """
-    Unisce due elementi di una congruenza, 
-    Ricordiamo che per come sto strutturando le congruenze le seguenti due sono identiche:
-    [0,1,0,1,2]
-    [0,2,0,2,1]
-    Poichè l'elemente della lista indica il gruppo di appartenenza, l'indice della lista indica l'elemento di riferimento
-    Per evitare di avere congruenze concettualmente identiche ma sostanzialmente differenti (dato che poi devo anche confrontarle)
-    Faccio sì che si propaghino in maniera costante, ovvero quando ne unisco due mantengo sempre il più piccolo 
+    Questa funzione deve solo fare in modo che in una congruenza (blocchi) risulti che gli elementi a e b abbiano lo stesso valore
+    (facciano parte della stessa classe d'eq) 
+    Per uniformare il tutto faccio in modo che soppravvivi sempre l'indice più piccolo. 
+    In questa maniera le congruenza sono definite unicamente, perchè ogni elemento finità per avere come indice della classe
+    l'indice del più piccolo elemento presente
+    
+    (QUA HO GRANDISSIMO MARGINE DI IMPROVMENT, almeno la transitività posso completarla io senza cicli...)
     """
     blocchi[a] = min(blocchi[a],blocchi[b])
     blocchi[b] = min(blocchi[a],blocchi[b])
@@ -153,7 +170,7 @@ def confronta_blocchi(b1,b2):
     Quindi controllo tutte le coppie di b1, se incontro anche solo una coppia uguale in b1 e differente in b2 allora restituisco falso
     altrimenti restituisco vero
     
-    studiando la matematica dietro la struttura che sto utilizzando probabilmente posso renderlo più efficiente.
+    ttudiando la matematica dietro la struttura che sto utilizzando probabilmente posso certamente renderlo più efficiente.
     """
     for i in range(len(b1)):
         for j in range(i+1,len(b1)):
@@ -170,12 +187,24 @@ def replace_values_list(lista, oggetto, nuovo):
 def unisci_congruenze(C1,C2):
     """
     Unisce due congruenze, operatore "join" dentro ConL
-    Ricordiamo che per come sto strutturando le congruenze le seguenti due sono identiche:
+    Ricordiamo che per come sto strutturando le congruenze le seguenti due sono identiche ma io incontrerò solo la prima:
     [0,1,0,1,2]
     [0,2,0,2,1]
     Poichè l'elemente della lista indica il gruppo di appartenenza, l'indice della lista indica l'elemento di riferimento
     Per evitare di avere congruenze concettualmente identiche ma sostanzialmente differenti (dato che poi devo anche confrontarle)
-    Faccio sì che si propaghino in maniera costante, ovvero quando ne unisco due mantengo sempre il più piccolo 
+    Faccio sì che si propaghino in maniera costante, ovvero quando ne unisco due mantengo sempre il più piccolo
+    
+    Per ogni coppia di elementi se sono uguali in C1 ma diversi in C2 
+    Questo algoritmo funziona (o almeno spero) anche se non so ancora bene come e perchè...
+    Perchè non controllo il caso simmetrico a 
+    C1[i] == C1[j] and C2[i] != C2[j] 
+    ovvero
+    C1[i] != C1[j] and C2[i] == C2[j]
+    
+    perchè mi basta scambiare max(C2[i],C2[j] con min(C2[i],C2[j]).
+    se il minimo fosse in C1 ? -> penso che il punto sia che se il minimo
+    Allora, usa la testa, per come ho strutturato le congruenze
+    C
     """
     for i in range(len(C1)):
         for j in range(i+1,len(C1)):
@@ -310,13 +339,21 @@ def permutezione_esima(indice,lista):
         lista.remove(permutazione[-1])
     return permutazione
 
-def matrix_from_sparse(sparse,n):
+def matrix_from_sparse(sparse : list[tuple],n):
+    """
+    Data una matrice sparse di questo tipo: sparse = [(1,2), (2,2)] genero una matrice tale che:
+    M[i][j] = 1 <-> (i,j) in sparse
+    M[i][j] = 0 otherwise
+    """
     matrix = [[0 for i in  range(n)] for j in range(n)]  
     for i,j in sparse:
         matrix[i][j] = 1
     return matrix
  
 def component_wise(d1,d2):
+    """
+    funzione di confronto compoennt wise
+    """
     one_win = False
     for a,b in zip(d1,d2):
         if b<a:
@@ -325,8 +362,11 @@ def component_wise(d1,d2):
             one_win = True
     return one_win
 
-def genera_cw(lista):
-
+def genera_cw(lista : list[int]) -> list[tuple]:
+    """
+    Funzione pergenerare tutti i possibili profili del cartesiano di n valori, ad esempio
+    genera_cw([3,2]): -> [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
+    """
     if len(lista) == 1:
         return [(i,) for i in range(lista[0])]
         
@@ -337,6 +377,17 @@ def genera_cw(lista):
         
     return risultato
 
+def permuta_matrice(matrice,nuovo_ordine):
+    """
+    riordina una matrice in maniera sensata scriverò dopo
+    """
+    new_m = [[0 for i in range(len(matrice))] for j in range(len(matrice))]
+    
+    for i in range(len(matrice)):
+        for j in range(len(matrice)):
+            new_m[i][j] = matrice[nuovo_ordine[i]][nuovo_ordine[j]]
+    return new_m
+
 #### PoSet Class
 class PoSet:
     def __init__(self,domination_matrix, X = None, labels = None, blocchi = None):
@@ -344,8 +395,6 @@ class PoSet:
         Crea un bel PoSet:
         - domination_matrix: Matrice di dominanze
         - X elenco di oggetti, se non passatti verrano usati numeri progressivi
-        - Labels: etichette da mostrare nella rappresentazione del poset, se non specificare verrà utilizzato la stringa degli oggeti
-        - blocchi = indicare se si vuole evidenziare nella rappresentazione una particolare equivalenza
         """
         try:
             if X:
@@ -359,90 +408,125 @@ class PoSet:
             self.domination_matrix = np.array(domination_matrix)
         elif type(domination_matrix) == np.ndarray:
             self.domination_matrix = domination_matrix
-            
-        if labels:
-            self.labels = labels
-        else:
-            self.labels = [str(x) for x in self.obj]
-            
+              
         self.cover_matrix = self.domination_matrix - np.eye(len(domination_matrix)) - np.where((self.domination_matrix - np.eye(len(domination_matrix))) @ (self.domination_matrix - np.eye(len(domination_matrix))) > 0,1,0)
-        self.blocchi = blocchi
 
-    def domination(self,a,b):
+    def domination(self,a,b, from_index = False):
         """
         return TRUE if a > b
                 False if not
         """
+        if from_index:
+            return bool(self.domination_matrix[b][a])
         return bool(self.domination_matrix[self.obj.index(b)][self.obj.index(a)])
     
-    def cover(self,a,b):
+    def cover(self,a,b, from_index = False):
         """
         return TRUE if a cover b
                 False if not
         """
+        if from_index:
+            return bool(self.cover_matrix[b][a])
         return bool(self.cover_matrix[self.obj.index(b)][self.obj.index(a)])
 
-    def upset(self,*a):
+    def upset(self,*a, from_index : bool = True, as_index  : bool= True) -> set :
         """
         Calcola l'upset di un insieme di elementi del poset
         restitusce l'insieme degli elementi che dominano tutti quelli passati
+        i parametri 
+        
+        from_index e as_index sono due booleani che indicano sono stati forniti e come verrano restituiti gli elementi
+        
+        UpSet qua è inteso come l'insieme degli elementi che dominano TUTTI quelli indicati, 
+        quindi l'intersezione dei subset dei singoli elementi
         """
+        if not from_index:
+            a = [self.obj.index(x) for x in a]
+
         if len(a) == 1:
-            index_a = self.obj.index(a[0]) 
-            upset = {self.obj[i] for i,r in enumerate(self.domination_matrix[index_a]) if r }
+            upset = {i for i,r in enumerate(self.domination_matrix[a[0]]) if r }
+        else:
+            upset = self.upset(a[0]) & self.upset(*a[1:])
+ 
+        if as_index:
             return upset
         else:
-            return self.upset(a[0]) & self.upset(*a[1:])
+            return {self[i] for i in upset}
     
-    def downset(self,*a):
+    def downset(self,*a, from_index : bool = True, as_index  : bool= True) -> set :
         """
         Calcola il downset di un insieme di elementi del poset
         restitusce l'insieme degli elementi che sono dominati tutti quelli passati
+        
+        from_index e as_index sono due booleani che indicano sono stati forniti e come verrano restituiti gli elementi
+        
+        UpSet qua è inteso come l'insieme degli elementi che dominano TUTTI quelli indicati, 
+        quindi l'intersezione dei subset dei singoli elementi
         """
+        if not from_index:
+            a = [self.obj.index(x) for x in a]
+            
         if len(a) == 1:
-            index_a = self.obj.index(a[0])
-            downset = { self.obj[i] for i,r in enumerate(self.domination_matrix) if r[index_a] }
+            downset = { i for i,r in enumerate(self.domination_matrix) if r[a[0]] }
+        else:
+            downset = self.downset(a[0]) & self.downset(*a[1:])
+            
+        if as_index:
             return downset
         else:
-            return self.downset(a[0]) & self.downset(*a[1:])
+            return {self[i] for i in downset}
         
-    def max_sub_set(self,set):
+    def max_sub_set(self,set, from_index : bool = True, as_index  : bool= True):
         """
         Restituisce l'insieme degli elementi che non sono dominati in un sottoinsieme degli elementi
         """
-        set = list(set)
+        if from_index:
+            set = list(set)
+        else:
+            set = [self.obj.index(x) for x in set]
+            
         upper = []
         for x in set:
-            index_x = self.obj.index(x)
             up = True
             for y in set:
-                index_y = self.obj.index(y)
-                if index_y != index_x and self.domination_matrix[index_x][index_y]:
+                if x != y and self.domination_matrix[x][y]:
                     up = False
                     break
             if up:
                 upper.append(x)
-        return upper
+                
+        if as_index:
+            return upper
+        else:
+            return [self[i] for i in upper]
         
-    def min_sub_set(self,set):
+    def min_sub_set(self,set, from_index : bool = True, as_index  : bool= True):
         """
         Restituisce l'insieme degli elementi che sono dominati da tutti gli altri elementi di un sottoinsieme
         """
-        set = list(set)
+        # Sono sicuro che questa cosa degli indici possa essere fatta in maniera intelligente con un wrapper
+        if from_index:
+            set = list(set)
+        else:
+            set = [self.obj.index(x) for x in set]
+            
         downer = []
         for x in set:
-            index_x = self.obj.index(x)
             down = True
             for y in set:
-                index_y = self.obj.index(y)
-                if index_y != index_x and self.domination_matrix[index_y][index_x]:
+                if y != x and self.domination_matrix[y][x]:
                     down = False
                     break
             if down:
                 downer.append(x)
-        return downer
+                
+        if as_index:
+            return downer
+        else:
+            return [self[i] for i in downer]
         
-    def join(self,*args, force = False):
+        
+    def join(self,*args, from_index = True, as_index=True, force = False):
         """
         calcla il join di due o più elementi, ovver il più piccolo elemento che li domina entrambi
         Se il join non è definito viene restituito
@@ -451,20 +535,26 @@ class PoSet:
         
         Nel caso _force_ non venga specificato ed il join non è definito viene restituito un errore
         """
-        min_up_set = self.min_sub_set(self.upset(*args))
+        min_up_set = self.min_sub_set(self.upset(*args, from_index=from_index))
         if len(min_up_set) == 1:
-            return min_up_set[0]
+            if as_index:
+                return min_up_set[0]
+            else:
+                return self[min_up_set[0]]
         
         elif len(min_up_set) == 0:
             return None
         
         elif force:
-            return min_up_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
+            if as_index:
+                return min_up_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
+            else:
+                return [self[i] for i in min_up_set]
         else: 
             return None
             # raise ValueError("join non definito")
         
-    def meet(self, *args, force = False):
+    def meet(self, *args, from_index = True, as_index=True, force = False):
         """
         calcla il meet di due o più elementi, ovver il più grande elemento che dominato da entrambi
         Se il meet non è definito viene restituito
@@ -473,13 +563,20 @@ class PoSet:
         
         Nel caso _force_ non venga specificato ed il meet non è definito viene restituito un errore
         """
-        max_down_set = self.max_sub_set(self.downset(*args))
+        max_down_set = self.max_sub_set(self.downset(*args, from_index = from_index))
         if len(max_down_set)==1:
-            return max_down_set[0]
+            if as_index:
+                return max_down_set[0]
+            else:
+                return self[max_down_set[0]]
+            
         if len(max_down_set)==0:
             return None
         elif force:
-            return max_down_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
+            if as_index:
+                return max_down_set # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
+            else:
+                return [self[i] for i in max_down_set] # devo decidere se restituire lista vuota/multipla nel caso non sia definito il meet, oppure errore
         else:
             return None
             #raise ValueError("meet non definito") #devo guardare come si creano gli errori #devo differenziare tra "non esiste" e "ambiguo"
@@ -737,6 +834,13 @@ class PoSet:
         """
         return self.dual()
     
+    def sort(self):
+        lista = list(range(len(self)))
+        dati = [(sum(self.domination_matrix[i]), sum([self.domination_matrix[k][i] for k in range(len(self))])) for i in range(len(self))]
+        lista.sort(key = lambda i:dati[i])
+        self.domination_matrix = permuta_matrice(self.domination_matrix,lista)
+        self.cover_matrix = permuta_matrice(self.cover_matrix,lista)
+    
     def dual(self):
         """
         Restituisce il duale di un reticolo (semplicemente prendendo la trasposta della matrice di dominanze)
@@ -850,13 +954,15 @@ class PoSet:
             if closed not in cuts:
                 cuts.append(closed)
         if nice_labels:
-            labels = ['' for c in cuts]
+            obj = ['' for c in cuts]
             for j in range(len(self)):
                 sub = self.index_downset(j)
                 for i,c in enumerate(cuts):
                     if c == sub:
-                        labels[i] = self.labels[j]
-            return Lattice.from_function(cuts,lambda a,b: a<= b, labels=labels)
+                        obj[i] = self.obj[j]
+            L = Lattice.from_function(cuts,lambda a,b: a<= b,)
+            L.obj = obj
+            return L
         return Lattice.from_function(cuts,lambda a,b: a<= b)
       
     def restituiscimi_cover_matrix(self) -> None:
@@ -905,13 +1011,19 @@ class PoSet:
             self.labels = labels
                  
     def hasse(*PoSets, shape : tuple = (500,500), grid: tuple = None, show_labels : bool = False, 
-                   title = 'PoSet', init = True):
+                   title = 'PoSet', init = True, radius = None, font_size = None):
         """
         Come distinguo tra l'aspetto grafico e quello concettuale
         """
         if init:
             for P in PoSets:
                 P.get_hasse_variables()
+        if radius:
+            for P in PoSets:
+                P.r = radius
+        if font_size:
+            for P in PoSets:
+                P.font_size = font_size
         Finestra(*PoSets, shape = shape, grid = grid, show_labels=show_labels, title = title)
  
     def show_percorso(self, nodes, color ='red'):
@@ -1566,48 +1678,6 @@ class DataSet():
                     separation[i][j] = sep
         return separation
     
-    def gerarchic_cluster(self, function_sep = "total_separation"):
-        """
-        Calcoliamo una cluster gerarchica, questo comando restituisce due liste:
-        - La prima è la lista di congruenze risultanti dalla cluster gerarchica
-        - La seoncda è la lista di separation assocciata ad ogni congruenza
-        
-        L'algoritmo è valido ma devo formalizzarlo perchè non è totalmente scontato. non sto salendo sopra chi mi copre,
-        potrei fare così ma secondo me questo è più efficiente perchè altrimenti dovrei calcolare tutto ConL per trovare chi mi copre
-        Il disegno lo fa sembrare facile ma nella pratica è lentissimo
-        """
-        if function_sep == "total_separation":
-            function_sep = lambda par: self.total_separation(par)
-            
-        elif function_sep == "max_separation":
-            function_sep = lambda par: self.max_separation(par)
-
-        else:
-            assert callable(function_sep)
-        irriducibile_con = self.L.congruenze_join_irriducibili()
- 
-        actual_con = [i for i in range(len(self.L))]
-        history_con = [actual_con]
-        separations = [0]
-        while sum(actual_con) != 0:
-            best_next_con = None
-            min_sep = 0
-            for con in irriducibile_con:
-                if not confronta_blocchi(con,actual_con):
-                    nex_con = unisci_congruenze(con,actual_con)
-                    nex_sep = function_sep(DataSet.as_partition(nex_con))
-                    if best_next_con:
-                        if nex_sep < min_sep:
-                            best_next_con = nex_con
-                            min_sep = nex_sep
-                    else:
-                        best_next_con = nex_con
-                        min_sep = nex_sep
-            actual_con = best_next_con
-            history_con.append(actual_con)
-            separations.append(min_sep)
-        return history_con, separations
-  
     def as_partition(con):
         """
         converte una congruenza in una partizione, mi semplifica parecchio i calcoli:
@@ -1663,66 +1733,146 @@ class DataSet():
     
     def __getitem__(self,index):
         return self.L[index]
-    
-    """
-    SFIDE FUTURE
-    1. [x] Sistemare le parentesi nel prodotto di Reticoli / Poset. è una cosa sbatti utile ma problematica 
-        - Porta però a creare problemi quando moltiplico reticoli che hanno come oggetti delle tuple, anche se queste non derivano da prodotti
-    2. [x] Implementare le funzioni per estrarre gli elementi meet-dense e join-dense
-        Dalla teoria risulta che preso a in L: a\in J(L) <==> \exists ! b: b\prec a
-        Quindi in realtà se faccio scorrere la matrice di copertura e sommo righe / colonne ottengo meet dense e join dense quando le somme fanno 1 giusto??
-    3. [x] Studiare la rappresentazione. p5 rimane l'opzione migliore come libreria, 
-        devo studiare come differenziare diversi Canvas, separare le funzioni etc.
-    4. [x] Calcolare il duale: Cosa semplice e veloce in realtà
-    5. [ ] Migliorare l'aspetto grafico:
-        Non devo avere funzioni complesse ed illegibili, dovrei poter fare questa cosa
-        - [ ] Una cazzo di griglia costumizzabile dai... L'equivalente di subplots in matplot lib per multigrafici
-        - [ ] Funzioni per evidenziare un insieme di punti o edge:
-            Non devo avere la funzione apposta per evidenziare una congruenze, semplicemente devo calcolare 
-            gli edge che la riguardano e passarli ad una funzione del tipo _evidenzia_edges(edges, color =(255,0,0), weight = 3_ 
-            
-            Analogalmente con i punti.
-            
-            Questo renderebbe incredibilmente semplice, elegante e divertente giocare con subset, elementi join-dense, catene etc. etc.
 
-        - [ ]Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset
-            Riordinare i punti in maniera tale di avere meno sovrapposizioni possibili e edges più corti possibili
-            
-        - Upgradare l'algoritmo. So che c'è una mappa per gli elementi join-irriducibili in L to gli elementi join irriducibibli in ConL
-            Devo eseguire i seguenti due step ma dopo credo (cioè è ovvio) sia più conveniente passare a questo metodo:
-            - Accertarmi che la mia tecnica per trovare gli elementi join irriducibili sia corretta
-            - Identificare gli step per ottenere ConL dai suoi elementi join irriducibili.
-                Ovvero, esiste un modo migliore che prendere tutti i suoi possibili sottoinsiemi?
-                L'algoritmo che ho studiato ora funziona
-                
-    6. [x] Implementare Dedekind Completetion
-        - [ ]  impmlementarlo stepwise invece che stupi one...
+    def gerarchic_cluster(self, function_sep = "total_separation"):
+        """
+        Calcoliamo una cluster gerarchica, questo comando restituisce due liste:
+        - La prima è la lista di congruenze risultanti dalla cluster gerarchica
+        - La seoncda è la lista di separation assocciata ad ogni congruenza
         
-    7. definire altre operazioni tra PoSet e Lattices.
-        - [ ] PoSet: glued sum verificando che abbiano massimo e minimo
-        - [ ] test di verifica di isomorfismi ed omomorfismi (sarebbe carino sfruttare funzioni built in come __is__) 
-        - [ ] Potrebbe essere carino (ma non particolarmente essenziale) definire __floordiv__ per calcolare Reticoli quoziente: L // theta = ...
+        L'algoritmo è valido ma devo formalizzarlo perchè non è totalmente scontato. non sto salendo sopra chi mi copre,
+        potrei fare così ma secondo me questo è più efficiente perchè altrimenti dovrei calcolare tutto ConL per trovare chi mi copre
+        Il disegno lo fa sembrare facile ma nella pratica è lentissimo
+        """
+        if function_sep == "total_separation":
+            function_sep = lambda par: self.total_separation(par)
+            
+        elif function_sep == "max_separation":
+            function_sep = lambda par: self.max_separation(par)
+
+        else:
+            assert callable(function_sep)
+        irriducibile_con = self.L.congruenze_join_irriducibili()
+ 
+        actual_con = [i for i in range(len(self.L))]
+        history_con = [actual_con]
+        separations = [0]
+        while sum(actual_con) != 0:
+            best_next_con = None
+            min_sep = 0
+            for con in irriducibile_con:
+                if not confronta_blocchi(con,actual_con):
+                    nex_con = unisci_congruenze(con,actual_con)
+                    nex_sep = function_sep(DataSet.as_partition(nex_con))
+                    if best_next_con:
+                        if nex_sep < min_sep:
+                            best_next_con = nex_con
+                            min_sep = nex_sep
+                    else:
+                        best_next_con = nex_con
+                        min_sep = nex_sep
+            actual_con = best_next_con
+            history_con.append(actual_con)
+            separations.append(min_sep)
+        return history_con, separations
+
+    def classic_gerarchic_cluster(self,function_sep = "total_separation"):
+        if function_sep == "total_separation":
+            function_sep = lambda par: self.total_separation(par)
+            
+        elif function_sep == "max_separation":
+            function_sep = lambda par: self.max_separation(par)
         
+        actual_cl = [[i] for i in range(len(self.L))]
+        history_con = [actual_cl]
+        separations = [0]
+        for _ in range(len(self.L)-1):
+            min_sep = 0
+            best_cl = None
+            for i,c1 in enumerate(actual_cl):
+                for k,c2 in enumerate(actual_cl[i+1:]):
+                    j = k + i + 1
+                    next_cl = [c for l,c in enumerate(actual_cl) if l!=i and l!=j] 
+                    next_cl.append(c1 + c2)
+                    sep = function_sep(next_cl)
+                    if best_cl:
+                        if sep < min_sep:
+                            min_sep = sep
+                            best_cl = next_cl
+                    else:
+                        min_sep = sep
+                        best_cl = next_cl
+            actual_cl = best_cl
+            separations.append(min_sep)
+            history_con.append(actual_cl)
             
+        return history_con,separations
+        
+def index_wrapper(self,*lista, from_index = False, to_index = False, func):
+    if from_index and to_index:
+        return self.func(*lista)
+
+    elif from_index:
+        return [self[x] for x in self.func(*lista)]
+    
+    elif to_index:
+        return self.func(self.obj.index[x] for x in lista)
+    
+    else:
+        return [self[x] for x in self.func(self.obj.index[x] for x in lista)]
+    
+"""
+SFIDE FUTURE
+ 1. [ ] Uniformare tutte le funzioni. probabilmente si può fare in maniera intelligente con i wrapper, quello che è importante però è questo:
+    - Non devo avere funzioni diverse per fare le cose in base all'indice o all'oggetto. Devonono solo essere parametri
+ 5. [ ] Migliorare l'aspetto grafico:
+    Non devo avere funzioni complesse ed illegibili, dovrei poter fare questa cosa
+    - [ ] Una cazzo di griglia costumizzabile dai... L'equivalente di subplots in matplot lib per multigrafici
+    - [ ] Funzioni per evidenziare un insieme di punti o edge:
+        Non devo avere la funzione apposta per evidenziare una congruenze, semplicemente devo calcolare 
+        gli edge che la riguardano e passarli ad una funzione del tipo _evidenzia_edges(edges, color =(255,0,0), weight = 3_ 
+        
+        Analogalmente con i punti.
+        
+        Questo renderebbe incredibilmente semplice, elegante e divertente giocare con subset, elementi join-dense, catene etc. etc.
+
+    - [ ]Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset
+        Riordinare i punti in maniera tale di avere meno sovrapposizioni possibili e edges più corti possibili
+        
+    - Upgradare l'algoritmo. So che c'è una mappa per gli elementi join-irriducibili in L to gli elementi join irriducibibli in ConL
+        Devo eseguire i seguenti due step ma dopo credo (cioè è ovvio) sia più conveniente passare a questo metodo:
+        - Accertarmi che la mia tecnica per trovare gli elementi join irriducibili sia corretta
+        - Identificare gli step per ottenere ConL dai suoi elementi join irriducibili.
+            Ovvero, esiste un modo migliore che prendere tutti i suoi possibili sottoinsiemi?
+            L'algoritmo che ho studiato ora funziona
             
-    Problema teorico:
-    Sò che |C_4 X C_3| = 12. ed in generale che il reticolo CW ottenuto come 
-    prodotto di n catene di elementi k_1, k_2, ..., k_n  = k_1 * k_2 ... k_n
+6. [x] Implementare Dedekind Completetion
+    - [ ]  impmlementarlo stepwise invece che stupi one...
     
-    Quanto è invece |ConL(C_4 X C_3)|  ed in generale |ConL(\Pi_{i=o}^n C_{k_i})| ?
-    Segue direttamente da: a cosa è siomorfo ConL(C_4 X C_3)?
-    C'è un legame tra ConL(C_4 X C_3) e ConL(C_4) X ConL(C_3)... spoiler sono uguali, ma va dimostrato
-    A questo punto diventa tutto più semplice (credo) 
+7. definire altre operazioni tra PoSet e Lattices.
+    - [ ] PoSet: glued sum verificando che abbiano massimo e minimo
+    - [ ] test di verifica di isomorfismi ed omomorfismi (sarebbe carino sfruttare funzioni built in come __is__) 
+    - [ ] Potrebbe essere carino (ma non particolarmente essenziale) definire __floordiv__ per calcolare Reticoli quoziente: L // theta = ...
     
-    S_n x S_m = S_{n*m}
-    
-    Dato che ConL(C_n) == S_n
-    |ConL(C_n)| = |S_n| = 2**n
-    
-    |ConL(C_n) x ConL(C_n)| = |S_n| = 2**n
-    
-    Devo lavorare solo ad un interfaccia grafica!
-    In maniera intelligente, su un file nuovo, una nuova classe
-    
-    """
-    
+8. ottimizzare cluster:
+    - Una volta dimostrato che ConL è colo l'insieme di possibili gap da rimuovere posso calcolare con L con molta più semplicità
+Problema teorico:
+Sò che |C_4 X C_3| = 12. ed in generale che il reticolo CW ottenuto come 
+prodotto di n catene di elementi k_1, k_2, ..., k_n  = k_1 * k_2 ... k_n
+
+Quanto è invece |ConL(C_4 X C_3)|  ed in generale |ConL(\Pi_{i=o}^n C_{k_i})| ?
+Segue direttamente da: a cosa è siomorfo ConL(C_4 X C_3)?
+C'è un legame tra ConL(C_4 X C_3) e ConL(C_4) X ConL(C_3)... spoiler sono uguali, ma va dimostrato
+A questo punto diventa tutto più semplice (credo) 
+
+S_n x S_m = S_{n*m}
+
+Dato che ConL(C_n) == S_n
+|ConL(C_n)| = |S_n| = 2**n
+
+|ConL(C_n) x ConL(C_n)| = |S_n| = 2**n
+
+Devo lavorare solo ad un interfaccia grafica!
+In maniera intelligente, su un file nuovo, una nuova classe
+
+"""
