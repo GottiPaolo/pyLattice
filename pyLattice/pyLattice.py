@@ -388,6 +388,33 @@ def permuta_matrice(matrice,nuovo_ordine):
             new_m[i][j] = matrice[nuovo_ordine[i]][nuovo_ordine[j]]
     return new_m
 
+def product(lista):
+    """
+    produttoria di una lista di numeri
+    """
+    p = 1
+    
+    for t in lista:
+        p*=t
+        
+    return p
+
+def join_irriducible_cw(*cw):
+    """
+    Questa funzione calcola le congruenza join-irriducibili in un reticolo component wise sfruttando molte proprietà
+    I dettagli matematici li tratterò a parte, ma sono una generalizzazione dei cambi di base
+    """
+    ###### FUNZIONA CAZZO
+    recurs = [product(cw[i+1:]) for i in range(len(cw)-1)]+[1]
+    dati = genera_cw(cw)
+    CON = []
+    for i,v in enumerate(cw):
+        for j in range(1,v):
+            con = [ind if d[i]!= j else ind - recurs[i] for ind,d in enumerate(dati)]
+            CON.append(con)
+    return CON
+        
+        
 #### PoSet Class
 class PoSet:
     def __init__(self,domination_matrix, X = None, labels = None, blocchi = None):
@@ -836,7 +863,7 @@ class PoSet:
     
     def sort(self):
         lista = list(range(len(self)))
-        dati = [(sum(self.domination_matrix[i]), sum([self.domination_matrix[k][i] for k in range(len(self))])) for i in range(len(self))]
+        dati = [(sum(self.cover_matrix[i]), sum([self.cover_matrix[k][i] for k in range(len(self))])) for i in range(len(self))]
         lista.sort(key = lambda i:dati[i])
         self.domination_matrix = permuta_matrice(self.domination_matrix,lista)
         self.cover_matrix = permuta_matrice(self.cover_matrix,lista)
@@ -1038,7 +1065,7 @@ class PoSet:
     def show_congruence(self, con, color = 'red'):
         self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
         
-   
+           
 class Lattice(PoSet):
     ## Personal Function
     def join(self,*args):
@@ -1344,7 +1371,13 @@ class Lattice(PoSet):
     def dinamic_congruences(self, shape : tuple = (500,500), grid: tuple = None, 
                                  show_labels : bool = False, title = 'PoSet', init = True, 
                                  ConL = None):    
-        Finestra(self,shape = shape, grid = grid, show_labels = show_labels,  title = title, dinamic_con = True, ConL = ConL)
+        if not ConL:
+            ConL = self.CongruenceLattice()
+        
+        if init:
+            self.get_hasse_variables()
+            ConL.get_hasse_variables()
+        Finestra(self, ConL, shape = shape, grid = grid, show_labels = show_labels,  title = title, dinamic_con = True)
  
     #### Special Lattice
     def from_power_set(n):
@@ -1382,16 +1415,28 @@ class Lattice(PoSet):
         Componente wise (chain product)
         """
         return Lattice.from_function(genera_cw(lista),component_wise)
-   
 
+   
+class CW(Lattice):
+    def __init__(self, *cw):
+        self.cw = cw
+        self.obj = genera_cw(cw)
+        self.domination_matrix = np.eye(len(self.obj))
+        for i,a in enumerate(self.obj):
+            for j,b in enumerate(self.obj[i+1:]):
+                if component_wise(a,b):
+                    self.domination_matrix[i][j+i+1] = 1
+                elif component_wise(b,a):
+                    self.domination_matrix[j+i+1][i] = 1
+        self.cover_matrix = self.domination_matrix - np.eye(len(self.domination_matrix)) - np.where((self.domination_matrix - np.eye(len(self.domination_matrix))) @ (self.domination_matrix - np.eye(len(self.domination_matrix))) > 0,1,0)
+
+    def congruenze_join_irriducibili(self):
+        return join_irriducible_cw(*self.cw)
+    
+    
 class Finestra():
-    def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12, title = 'PosetMagico', dinamic_con = False, ConL = None):
+    def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12, title = 'PosetMagico', dinamic_con = False):
         # Definisci Griglia
-        if dinamic_con:
-            if not ConL:
-                C = hasses[0].CongruenceLattice()
-                C.get_hasse_variables()
-                hasses= [*hasses] + [C]
         if not grid:
             self.grid = (1, len(hasses))
         else:
@@ -1416,8 +1461,13 @@ class Finestra():
         self.disegna()
         self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
         self.canvas.bind("<Configure>", self.resize)
+        self.root.bind("j", self.show_all_irriducible)
+        self.root.bind("r", self.reset)
+        self.root.bind("<Up>", self.show_upset)
+        self.root.bind("<Down>", self.show_downset)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
+            self.root.bind('<Button-2>', self.applica_con)
         self.root.mainloop()
                
     def resize(self, event):
@@ -1514,13 +1564,61 @@ class Finestra():
             self.hasses[0].show_congruence(self.hasses[1][cerchio_selezionato])
             self.disegna()
  
+    def show_all_irriducible(self, skip):
+        for h in self.hasses:
+            h.show_irriducible()
+        self.disegna()
+        
+    def reset(self, skip):
+        for h in self.hasses:
+            h.get_hasse_variables()
+        self.disegna()
+        
     def identifica_punto(self,x,y):
         """
         funzione che dalla x e dalla y del mouse restituisce l'indice del poset di riferimento e del punto di riferimento
         lo farl in futuro
         """
-        pass
-                      
+        row = int(y  // self.H)
+        col = int(x  // self.W)
+        hasse_index = row*self.grid[1] + col
+
+        # relativizza posizione del mouse nel riquadro di interesse nella griglia 
+        mouse_x = x % (self.shape[0] / self.grid[1])
+        mouse_y = y % (self.shape[1] / self.grid[0])
+        
+        # Trova cerchio
+        cerchio_selezionato = None
+        for i,node in enumerate(self.hasses[hasse_index].nodes):
+            node_x, node_y = node[0] * self.W, node[1] * self.H
+            distanza_q = ((mouse_x - node_x)**2 + (mouse_y - node_y)**2)
+            if distanza_q <= self.hasses[hasse_index].r ** 2 * 2:
+                cerchio_selezionato = i
+                return hasse_index, cerchio_selezionato
+
+    def applica_con(self, evento):
+        hasse_index,punto = self.identifica_punto(evento.x, evento.y)
+
+        L = self.hasses[0].apply_congruence(self.hasses[hasse_index][punto])
+        ConL = L.CongruenceLattice()
+
+        L.get_hasse_variables()
+        ConL.get_hasse_variables()
+        
+        self.hasses = [L,ConL]
+
+        self.disegna()
+        
+    def show_upset(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses[hasse].show_nodes(self.hasses[hasse].upset(punto), 'red')    
+        self.disegna()
+    
+    def show_downset(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses[hasse].show_nodes(self.hasses[hasse].downset(punto), 'red')  
+        self.disegna()
+
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -1578,12 +1676,12 @@ class DataSet():
                     fuz_dom[i][j] = 0
                     fuz_dom[j][i] = 1
                 else:
-                    num_ij = len(self.L.index_upset(i) & ({k for k in range(len(self.L))} - self.L.index_upset(j))) + 1
-                    den_ij = len(self.L.index_downset(i) & ({k for k in range(len(self.L))} - self.L.index_downset(j))) + 1
+                    num_ij = len(self.L.index_upset(i, strict=True)  - self.L.index_upset(j, strict=True)) + 1
+                    den_ij = len(self.L.index_downset(i, strict=True)  - self.L.index_downset(j,  strict=True)) + 1
                     a_ij = num_ij / den_ij
                     
-                    num_ji = len(self.L.index_upset(j) & ({k for k in range(len(self.L))} - self.L.index_upset(i))) + 1
-                    den_ji =len(self.L.index_downset(j) & ({k for k in range(len(self.L))} - self.L.index_downset(i))) + 1
+                    num_ji = len(self.L.index_upset(j, strict = True)  - self.L.index_upset(i, strict = True)) + 1
+                    den_ji =len(self.L.index_downset(j, strict = True) - self.L.index_downset(i, strict = True)) + 1
                     a_ji = num_ji / den_ji
                     
                     d_ij = a_ij / (a_ij + a_ji)
@@ -1593,7 +1691,7 @@ class DataSet():
         
     def LLEs(self):
         """
-        Da implementare, non è così semplice
+        Solo per reticoli CW
         """
         fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
         k = len(self.L[0])
@@ -1734,7 +1832,7 @@ class DataSet():
     def __getitem__(self,index):
         return self.L[index]
 
-    def gerarchic_cluster(self, function_sep = "total_separation"):
+    def gerarchic_cluster(self, function_sep = "total_separation", irriducible_congru = None):
         """
         Calcoliamo una cluster gerarchica, questo comando restituisce due liste:
         - La prima è la lista di congruenze risultanti dalla cluster gerarchica
@@ -1752,8 +1850,10 @@ class DataSet():
 
         else:
             assert callable(function_sep)
-        irriducibile_con = self.L.congruenze_join_irriducibili()
- 
+        if not irriducible_congru:
+            irriducibile_con = self.L.congruenze_join_irriducibili()
+        else:
+            irriducibile_con = irriducible_congru
         actual_con = [i for i in range(len(self.L))]
         history_con = [actual_con]
         separations = [0]
@@ -1820,6 +1920,96 @@ def index_wrapper(self,*lista, from_index = False, to_index = False, func):
     
     else:
         return [self[x] for x in self.func(self.obj.index[x] for x in lista)]
+       
+def BrueggemannLerche_CW_a_b(a,b,m):
+    """
+    La funzione di BrueggemannLerche si può ottimizzare parecchio grazie a tanta roba
+    """
+    up_ab_1   = product([m[i] - a[i] + 1] for i in range(len(a))) - product([m[i] - max(a[i],b[i])] for i in range(len(a)))
+    down_ab = product([m[i] - b[i] + 1] for i in range(len(a))) - product([m[i] - max(a[i],b[i])] for i in range(len(a)))
+    return up_ab_1/(up_ab_1+down_ab)
+
+class CWDataSet(DataSet):
+    
+    def __init__(self, cw, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
+        """
+        Un dataset è un reticolo ma con associata una distribuzione di frequenza per ogni punto.
+
+        """
+        self.L = CW(*cw)
+        
+        assert len(freq) == len(self.L)
+        self.f = freq
+        
+        #Fuzzy dom
+        if fuzzy_domination_function == 'BrueggemannLerche':
+            self.fuz_dom = self.BrueggemannLerche()
+        
+        elif fuzzy_domination_function == 'LLEs':
+            self.fuz_dom = self.LLEs()
+            
+        elif callable(fuzzy_domination_function):
+            self.fuz_dom = fuzzy_domination_function(self.L)
+            
+        # T Norm
+        if t_norm_function == 'prod':
+            self.t_norm_func = lambda a,b: a*b
+            self.t_conorm_func = lambda a,b: a+b - a*b
+            
+        elif t_norm_function == "min":
+            self.t_norm_func = lambda a,b: min(a,b)
+            self.t_conorm_func = lambda a,b: max(a,b)
+            
+        elif t_norm_function == 'hamacher':
+            self.t_norm_func = lambda a,b: (a*b)/(a+b-a*b) if (a!=0 or b!=0) else 0
+            self.t_conorm_func = lambda a,b: (a+b)/(1+a*b) #Einstein sum
+  
+        elif callable(t_norm_function):
+            self.t_norm_func = t_norm_function
+            self.t_conorm_func = lambda a,b: 1-self.t_norm_func(1-a,1-b)
+            
+        # T_conorm function
+        if callable(t_conorm_function):
+            self.t_conorm_func = t_conorm_function
+
+
+        self.sep = self.compute_separation()
+        
+    def BrueggemannLerche(self):
+        fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
+        for p in range(len(self.L)):
+            for q in range(p+1,len(self.L)):
+                valore_p = self.L[p] # per il debug
+                valore_q = self.L[q] # per il debug
+                if self.L.domination_matrix[p][q]:
+                    fuz_dom[p][q] = 1
+                    fuz_dom[q][p] = 0
+                elif self.L.domination_matrix[q][p]:
+                    fuz_dom[p][q] = 0
+                    fuz_dom[q][p] = 1
+                else:
+                    c_up_p = product([k - p_i   for k, p_i in zip(self.L.cw, self.L[p])]) 
+                    c_up_pq = product([k - max(p_i,q_i)  for k, p_i, q_i in zip(self.L.cw, self.L[p], self.L[q])])
+                    up_pq = c_up_p - c_up_pq
+                    
+                    c_down_p  = product([p_i + 1 for p_i in self.L[p]]) 
+                    c_down_pq = product([min(p_i,q_i) + 1 for p_i,q_i in zip(self.L[p], self.L[q])])
+                    down_pq = c_down_p - c_down_pq
+                    
+                    
+                    c_up_q = product([k - q_i  for k, q_i in zip(self.L.cw, self.L[q])]) 
+                    up_qp = c_up_q - c_up_pq
+                    
+                    c_down_q  = product([q_i + 1 for q_i in self.L[q]]) 
+                    down_qp = c_down_q - c_down_pq
+                    
+                    a_pq = up_pq / down_pq
+                    a_qp = up_qp / down_qp
+                    d_pq = a_pq / (a_pq + a_qp)
+                    fuz_dom[p][q] = d_pq
+                    fuz_dom[q][p] = 1 - d_pq
+        return fuz_dom      
+    
     
 """
 SFIDE FUTURE
