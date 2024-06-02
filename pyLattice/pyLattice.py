@@ -1691,7 +1691,7 @@ class DataSet():
         
     def LLEs(self):
         """
-        Solo per reticoli CW
+        Solo per reticoli CW, infatti dovrei spostarlo
         """
         fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
         k = len(self.L[0])
@@ -1978,6 +1978,8 @@ class CWDataSet(DataSet):
     def BrueggemannLerche(self):
         fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
         for p in range(len(self.L)):
+            c_up_p = product([k - p_i   for k, p_i in zip(self.L.cw, self.L[p])]) # fuori dal ciclo risparmio ancora di più
+            c_down_p  = product([p_i + 1 for p_i in self.L[p]])  
             for q in range(p+1,len(self.L)):
                 valore_p = self.L[p] # per il debug
                 valore_q = self.L[q] # per il debug
@@ -1988,11 +1990,9 @@ class CWDataSet(DataSet):
                     fuz_dom[p][q] = 0
                     fuz_dom[q][p] = 1
                 else:
-                    c_up_p = product([k - p_i   for k, p_i in zip(self.L.cw, self.L[p])]) 
                     c_up_pq = product([k - max(p_i,q_i)  for k, p_i, q_i in zip(self.L.cw, self.L[p], self.L[q])])
                     up_pq = c_up_p - c_up_pq
                     
-                    c_down_p  = product([p_i + 1 for p_i in self.L[p]]) 
                     c_down_pq = product([min(p_i,q_i) + 1 for p_i,q_i in zip(self.L[p], self.L[q])])
                     down_pq = c_down_p - c_down_pq
                     
