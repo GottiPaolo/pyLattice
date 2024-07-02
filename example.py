@@ -1,6 +1,7 @@
 import pyLattice.pyLattice as pl
 from random import randint
 import time as t
+import copy
 
 def count_unique(con):
     s = 0
@@ -15,7 +16,7 @@ def count_unique(con):
 #                           congruence_lattice =C, shape = (800,800), show_labels= True, font_size= 15)
 # pene
 
-mostra_grafici = False
+mostra_grafici = True
 ## Construct a PoSet
 ### From a domination matrix
                     #  a  b  c  d  e 
@@ -128,7 +129,6 @@ if mostra_grafici:
 
 
 ### Congruencens
-
 L = pl.Lattice.from_cw(2,3,4)
 
 print(L.calcola_congruenza(10,15)) # [0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2]
@@ -140,7 +140,56 @@ if mostra_grafici:
 
 
 ### DataSet
-cw = (4,4,2)
+cw = (2,3,3)
 D = pl.CWDataSet(cw,[randint(0,20) for i in range(pl.product(cw))])
-D.estetic_rappresentation()
+print('\nBLS')
+D.show_fuz_dom()
+D.fuz_dom = D.LLEs()
+print('\nLLES')
+D.show_fuz_dom()
 
+print('\nGerarchia delle partizioni')
+print(*[pl.DataSet.as_partition(x) for x in D.gerarchic_cluster()[0]],sep = '\n')
+if mostra_grafici:
+    D.estetic_rappresentation()
+
+
+
+## All approches
+cw = (3,2,2)
+A = pl.Lattice.from_cw(*cw)
+frequenze = [randint(0,20) for a in A]
+D = pl.DataSet(A,frequenze)
+
+hasses = [A]
+ConL_a = A.CongruenceLattice()
+
+D.L.get_hasse_variables(radius = 3, font_size=12, labels = [str(f) for f in frequenze])
+
+for fuzzy_d in ('BrueggemannLerche', 'LLEs'):
+    for agg_function in ("total_separation","max_separation"):
+        for t_n in ('hamacher', 'min', 'prod'):
+            print('\n',fuzzy_d,t_n,agg_function)
+            D = pl.CWDataSet(cw,freq=frequenze,t_norm_function=t_n,fuzzy_domination_function=fuzzy_d)
+
+            start = t.time()
+            clusters, separations = D.gerarchic_cluster()
+            print(f'Tempo gerarchic_cluster: {t.time()-start}')
+            
+            clusters, separations = D.gerarchic_cluster(function_sep=agg_function)
+            hasses.append(copy.deepcopy(ConL_a))
+            hasses[-1].get_hasse_variables(radius = 3, font_size=11)
+            hasses[-1].show_percorso([ConL_a.obj.index(c) for c in clusters], color ='orange')
+            if agg_function == "total_separation":
+                hasses[-1].labels = ([str(round(D.total_separation(pl.DataSet.as_partition(con)),2)) for con in ConL_a])
+            else:
+                hasses[-1].labels = ([str(round(D.max_separation(pl.DataSet.as_partition(con)),2)) for con in ConL_a])
+             
+            #hasses[-1].hasse(init = False, show_labels = True, title = f"{fuzzy_d} {t_n} {agg_function}", 
+            #                 shape = (800,800))
+            hasses[-1].labels = ['' for i in ConL_a]
+            hasses[-1].labels[-1] = f"{fuzzy_d} {t_n} {agg_function}"
+            
+if mostra_grafici:       
+    pl.Lattice.hasse(*hasses[1:],show_labels=True, shape = (1800,900), 
+                 grid = (2,6), title = 'All', init = False)
