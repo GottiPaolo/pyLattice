@@ -14,7 +14,8 @@ def count_unique(con):
 # D = pl.DinamicCongruences(pl.Hasse(*A.hasse_coordinate(),radius=10),  pl.Hasse(*C.hasse_coordinate(), radius = 10),
 #                           congruence_lattice =C, shape = (800,800), show_labels= True, font_size= 15)
 # pene
-mostra_grafici = True
+
+mostra_grafici = False
 ## Construct a PoSet
 ### From a domination matrix
                     #  a  b  c  d  e 
@@ -66,7 +67,7 @@ print(P.join('d','h',from_index=False, force = True))  # ['j', 'f']
 print(P.meet('i','d',from_index=False, force = True))  # None
 
 if mostra_grafici:
-    P.sub_poset(['a','b','d','h','j','l']).hasse(show_labels = True)
+    P.sub_poset([P.obj.index(_a) for _a in ['a','b','d','h','j','l']]).hasse(show_labels = True)
 
 ## Operation beetwen PoSet
 ### sum
@@ -134,8 +135,12 @@ print(L.calcola_congruenza(10,15)) # [0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 
 if mostra_grafici:
     L.hasse(L.CongruenceLattice(),shape = (500,250))
 
-L.dinamic_congruences()
+if mostra_grafici:
+    L.dinamic_congruences()
 
 
-
+### DataSet
+cw = (4,4,2)
+D = pl.CWDataSet(cw,[randint(0,20) for i in range(pl.product(cw))])
+D.estetic_rappresentation()
 

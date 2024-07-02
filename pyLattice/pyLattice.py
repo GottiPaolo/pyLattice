@@ -1,8 +1,9 @@
 import numpy as np
-import p5
+#import p5
 import tkinter as tk
-#### Hasse functions
+from PIL import ImageGrab#Screeeeenshot fuck
 
+#### Hasse functions
 def get_riga_punto(cover_matrix,p,righe):
     """
     funzione per ottenere la riga di un punto in un diagramma di Hasse a partire dalle righe note e dalla matrice di copertura
@@ -551,8 +552,7 @@ class PoSet:
             return downer
         else:
             return [self[i] for i in downer]
-        
-        
+            
     def join(self,*args, from_index = True, as_index=True, force = False):
         """
         calcla il join di due o più elementi, ovver il più piccolo elemento che li domina entrambi
@@ -680,6 +680,8 @@ class PoSet:
     def index_max_sub_set(self,set):
         """
         Identica alla funzione max_sub_set ma invece che richiedere un elemento del poset chiede solo il suo indice
+        
+        Non posso super semplifcarla semplicemente sommando i valori della matrice di dominanza filtrata e vedere se c'è uno zero?
         """
         set = list(set)
         upper = []
@@ -867,6 +869,7 @@ class PoSet:
         lista.sort(key = lambda i:dati[i])
         self.domination_matrix = permuta_matrice(self.domination_matrix,lista)
         self.cover_matrix = permuta_matrice(self.cover_matrix,lista)
+        self.obj = [self.obj[i] for i in lista]
     
     def dual(self):
         """
@@ -910,7 +913,7 @@ class PoSet:
         cover_matrix = cover_matrix + domination_matrix  # Sarebbe C + I ma sfrutto che inizializzo Z ad I per non calcolare due volte I
         
         for i in range(len(cover_matrix)-1):
-            domination_matrix @= cover_matrix
+            domination_matrix = domination_matrix @ cover_matrix
             
         domination_matrix = np.where( domination_matrix > 0, 1, 0)
         
@@ -959,7 +962,7 @@ class PoSet:
         
         Potrei ottimizzarlo prendendo un sottoinsieme della matrice di dominanze invece che utilizzando una funzione, ma non è urgnete
         """
-        return PoSet.from_function(sub_set,lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
+        return PoSet.from_function([self[i] for i in sub_set],lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
           
     def dedekind_completetion(self, nice_labels = False):
         """
@@ -1007,6 +1010,7 @@ class PoSet:
         self.obj = [str(i) for i in range(len(self))]
         self.labels = [str(i) for i in range(len(self))]
         
+        
     # Hasse semi-def     
     def get_hasse_variables(self,labels = None, radius = 3, font_size = 12, vertex_color = None,
                             nodes_color = None, stroke_weights = None):
@@ -1051,7 +1055,7 @@ class PoSet:
         if font_size:
             for P in PoSets:
                 P.font_size = font_size
-        Finestra(*PoSets, shape = shape, grid = grid, show_labels=show_labels, title = title)
+        return Finestra(*PoSets, shape = shape, grid = grid, show_labels=show_labels, title = title)
  
     def show_percorso(self, nodes, color ='red'):
         self.vertex_color =[color if (x in nodes and x!= nodes[-1] and nodes[nodes.index(x)+1] == y) or (y in nodes and y!= nodes[-1] and nodes[nodes.index(y)+1] == x) else 'black' for x,y in self.vertex]
@@ -1190,7 +1194,7 @@ class Lattice(PoSet):
         cover_matrix = cover_matrix + domination_matrix  # Sarebbe C + I ma sfrutto che inizializzo Z ad I per non calcolare due volte I
         
         for i in range(len(cover_matrix)-1):
-            domination_matrix @= cover_matrix
+            domination_matrix = domination_matrix @ cover_matrix
             
         domination_matrix = np.where( domination_matrix > 0, 1, 0)
         
@@ -1445,6 +1449,7 @@ class Finestra():
         assert self.grid[0] * self.grid[1] >= len(hasses)
             
         # definisci var
+        self.title = title
         self.hasses = hasses
         self.show_labels = show_labels
         self.font_size = font_size
@@ -1465,6 +1470,8 @@ class Finestra():
         self.root.bind("r", self.reset)
         self.root.bind("<Up>", self.show_upset)
         self.root.bind("<Down>", self.show_downset)
+        self.root.bind("s", self.save)
+        self.root.bind("d", self.capture_window)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
             self.root.bind('<Button-2>', self.applica_con)
@@ -1619,6 +1626,28 @@ class Finestra():
         self.hasses[hasse].show_nodes(self.hasses[hasse].downset(punto), 'red')  
         self.disegna()
 
+    def save(self,evento):
+        """
+        Salva il contenuto del canvas come immagine PNG.
+
+        Args:
+          canvas: L'oggetto canvas Tkinter.
+          filename: Il nome del file PNG da salvare.
+        """
+        self.canvas.postscript(file=f"PythonStuff/pyLattice/img/{self.title}.eps", colormode='color')
+        
+    def capture_window(self,evento):
+        """
+        Questa funzione mi serve letteralmente solo e soltanto per effettuare uno screensshot della finestra
+        """
+        x = self.canvas.winfo_rootx()
+        y = self.canvas.winfo_rooty()
+        width = self.canvas.winfo_width()
+        height = self.canvas.winfo_height()    #get details about window
+        print(height,self.shape[1])
+        
+        takescreenshot = ImageGrab.grab(bbox=(x, y,x+ width,y+height))
+        takescreenshot.save(f"PythonStuff/pyLattice/img/{self.title}.png")
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -1633,9 +1662,6 @@ class DataSet():
         #Fuzzy dom
         if fuzzy_domination_function == 'BrueggemannLerche':
             self.fuz_dom = self.BrueggemannLerche()
-        
-        elif fuzzy_domination_function == 'LLEs':
-            self.fuz_dom = self.LLEs()
             
         elif callable(fuzzy_domination_function):
             self.fuz_dom = fuzzy_domination_function(self.L)
@@ -1688,58 +1714,7 @@ class DataSet():
                     fuz_dom[i][j] = d_ij
                     fuz_dom[j][i] = 1 - d_ij
         return fuz_dom
-        
-    def LLEs(self):
-        """
-        Solo per reticoli CW, infatti dovrei spostarlo
-        """
-        fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
-        k = len(self.L[0])
-        
-        if True:
-            for i,a in enumerate(self.L):
-                for _,b in enumerate(self.L[i+1:]):
-                    j = _ + i + 1
-                    k1 = sum([1 for x,y in zip(a,b) if x < y])
-                    k2 = sum([1 for x,y in zip(a,b) if x == y])
-                    
-                    fuzzy_dom_ab = 0
-                    for s in range(k2 + 1):
-                        primo_termine = 1
-                        for pt in range(k2 - s + 1, k2 + 1):
-                            primo_termine*=pt
-                            
-                        secondo_termine = 1
-                        for pt in range(k-s,k):
-                            secondo_termine*=pt
-                        fuzzy_dom_ab += primo_termine/secondo_termine
-                    fuzzy_dom_ab *= k1/k
-                    fuz_dom[i][j] = fuzzy_dom_ab
-                    fuz_dom[j][i] = 1 - fuzzy_dom_ab
-        else:
-            # Versione estesa
-            for i,a in enumerate(self.L):
-                for j,b in enumerate(self.L):
-                    if i == j :
-                        continue
-                    k1 = sum([1 for x,y in zip(a,b) if x < y])
-                    k2 = sum([1 for x,y in zip(a,b) if x == y])
-                    
-                    fuzzy_dom_ab = 0
-                    for s in range(k2 + 1):
-                        primo_termine = 1
-                        for pt in range(k2 - s + 1, k2 + 1):
-                            primo_termine*=pt
-                            
-                        secondo_termine = 1
-                        for pt in range(k-s,k):
-                            secondo_termine*=pt
-                        fuzzy_dom_ab += primo_termine/secondo_termine
-                    fuzzy_dom_ab *= k1/k
-                    fuz_dom[i][j] = fuzzy_dom_ab
-                    
-        return fuz_dom
-    
+         
     ## Costruire matrice di separation come 1 + \sum inb_{ikj}
     def in_beetwen(self, a,k,b):
         """
@@ -1814,10 +1789,8 @@ class DataSet():
                     sep_max = max(sep_max, self.sep[a][b]) 
             tot_sep +=  sep_max * len(gruppo)
         return tot_sep
-       
-       
-    # Support and estetic
-    
+          
+    # Support and estetic 
     def show_fuz_dom(self, decimal = 2):
         for riga in self.fuz_dom:
             print(*[f"{r:.{decimal}f}" for r in riga],sep = ' , ')
@@ -1908,6 +1881,23 @@ class DataSet():
             
         return history_con,separations
         
+    def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation"):
+        if function_sep != "total_separation":
+            raise ValueError("Non l'ho ancora implementato coglione")
+        
+        if not gerarchic_cluster:
+            gerarchic_cluster = self.gerarchic_cluster(function_sep)[0]
+        Con_L = self.L.CongruenceLattice()
+        Con_L.get_hasse_variables()
+        Con_L.show_percorso([Con_L.obj.index(x) for x in gerarchic_cluster], 'orange')
+        if function_sep ==  "total_separation":
+            Con_L.labels = [round(self.total_separation(DataSet.as_partition(con)),2) for con in Con_L]
+
+        self.L.get_hasse_variables()
+        self.L.labels = [str(_f) for _f in self.f]
+        self.L.dinamic_congruences(ConL = Con_L,init = False, shape = (1400,700), show_labels=True)
+        
+        
 def index_wrapper(self,*lista, from_index = False, to_index = False, func):
     if from_index and to_index:
         return self.func(*lista)
@@ -1921,14 +1911,6 @@ def index_wrapper(self,*lista, from_index = False, to_index = False, func):
     else:
         return [self[x] for x in self.func(self.obj.index[x] for x in lista)]
        
-def BrueggemannLerche_CW_a_b(a,b,m):
-    """
-    La funzione di BrueggemannLerche si può ottimizzare parecchio grazie a tanta roba
-    """
-    up_ab_1   = product([m[i] - a[i] + 1] for i in range(len(a))) - product([m[i] - max(a[i],b[i])] for i in range(len(a)))
-    down_ab = product([m[i] - b[i] + 1] for i in range(len(a))) - product([m[i] - max(a[i],b[i])] for i in range(len(a)))
-    return up_ab_1/(up_ab_1+down_ab)
-
 class CWDataSet(DataSet):
     
     def __init__(self, cw, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -2010,7 +1992,47 @@ class CWDataSet(DataSet):
                     fuz_dom[q][p] = 1 - d_pq
         return fuz_dom      
     
-    
+    def LLEs(self):
+        """
+        Solo per reticoli CW, infatti dovrei spostarlo
+        """
+        fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
+        k = len(self.L[0])
+        
+        if True:
+            for i,a in enumerate(self.L):
+                for _,b in enumerate(self.L[i+1:]):
+                    j = _ + i + 1
+                    k1 = sum([1 for x,y in zip(a,b) if x < y])
+                    k2 = sum([1 for x,y in zip(a,b) if x == y])
+                    
+                    fuzzy_dom_ab = 0
+                    for s in range(k2 + 1):
+                        primo_termine = product(range(k2 - s + 1, k2 + 1))
+                        secondo_termine = product(range(k-s,k))
+                        fuzzy_dom_ab += primo_termine/secondo_termine
+                    fuzzy_dom_ab *= k1/k
+                    fuz_dom[i][j] = fuzzy_dom_ab
+                    fuz_dom[j][i] = 1 - fuzzy_dom_ab
+        else:
+            # Versione estesa
+            for i,a in enumerate(self.L):
+                for j,b in enumerate(self.L):
+                    if i == j :
+                        continue
+                    k1 = sum([1 for x,y in zip(a,b) if x < y])
+                    k2 = sum([1 for x,y in zip(a,b) if x == y])
+                    
+                    fuzzy_dom_ab = 0
+                    for s in range(k2 + 1):
+                        primo_termine = product(range(k2 - s + 1, k2 + 1))
+                        secondo_termine = product(range(k-s,k))
+                        fuzzy_dom_ab += primo_termine/secondo_termine
+                    fuzzy_dom_ab *= k1/k
+                    fuz_dom[i][j] = fuzzy_dom_ab
+                    
+        return fuz_dom
+   
 """
 SFIDE FUTURE
  1. [ ] Uniformare tutte le funzioni. probabilmente si può fare in maniera intelligente con i wrapper, quello che è importante però è questo:
