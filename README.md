@@ -1,7 +1,7 @@
 # pyLattice
 
 pyLattice is a python library to menage Lattice and PoSet.
-I'm a statiscs student, so maybe this not the best programming option but you know
+I'm a statiscs student, so maybe this not the best program you can see, but it works. 
 
 
 ## Structure
@@ -69,19 +69,18 @@ With two or more PoSet you can compute this operation
 
 ### Hasse diagram
 You can represent a PoSet by a Hasse diagram.  
-To get the Hasse diagram of a PoSet you can just call the function `P.hasse()`. Eventually you can plot multiple hasse diagram.  
+To get the Hasse diagram of a PoSet `P` you can just call the function `P.hasse()`. Eventually you can plot multiple hasse diagram.  
 `P.hasse(Q,H)` will show a window with all the hasse diagram of $P$, $Q$ adn $H$. You can specify these parameters
 - `grid`: tuples of two integers rapresenting the grid for plot multiple hasse. Default is all poset in a single line
-- `shape`: tuples of two integers rapresenting the pixels dimention of window, default 500x500
-- `radius`: radius of the circles, default 5
-- `hasse_mode`: for know you can choose beetwen 5 different modes for an hasse diagram. they're codes just by progressive numbers. (I'm going to implemente more ones in the future)
+- `shape`: tuples of two integers rapresenting the pixels dimention of window, default `(500,500)`
+- `radius`: radius of the circles, default `5`
 - `title`: windows title
-- `labels`: boolean to show or hide labels
-- `t_size`: text size of the labels
+- `show_labels`: boolean to show or hide labels
+- `font_size`: text size of the labels
+- `init`: boolean attribute. default is `True` and it will be calculate all the information about the hasse diagram. Otherwise you can use the `get_hasse_variables`function to choose color and weight of the vertex and dot and after this call the `hasse` function with `init = False`.
 
-Hasse diagram could be ambigous in some situation. Points could allign and looks like they are connected when effictevly they aren not. The best way to improve this problem is to make the graph interactive (later update.)
+Hasse diagram could be ambigous in some situation. Points could allign and looks like they are connected when effictevly they aren not. The best way to improve this problem is to make the graph interactive. Try to move the point with the mouse to see if they are effectivly connected
 
-You can plot a more dinamic hasse diagram by using the function `P.hasse_p5()` instead of `P.hasse()`. The first one use the `p5` module instead the `tk`. But `p5`is not so well integrated in python enviroment.
 
 ## Lattice
 The main differences beetwen PoSet and Lattice is that the last ones are algebric structure. Infact in lattice _join_ and _meet_ are **always** defined. The structure of a Lattice module is the same as the PoSet. The difference beetwen the two are in some function and operation 
@@ -118,6 +117,10 @@ $\theta = [c_0,c_1,\dots,c_n]$ where $c_i = c_j \leftrightarrow x_i\equiv x_j $
 - you can calculate all the congruences with `L.CongruenceLattice()` (as labels for $\theta$ are used $|L/\theta|$ unless you specify `labels = True`)
 ![img](https://github.com/GottiPaolo/pyLattice/blob/main/img/L_ConL.png)
 
-- you can play dinamic in a p5 window with the command `L.dinamic_congruences()`. In this mode $L$ and $Con L$ are shown togheter, and edges in $L$ become red to indicate classe for the congruences pointing with the mouse in Con L.
+- you can play dinamic  window with the command `L.dinamic_congruences()`. In this mode $L$ and $Con L$ are shown togheter, and edges in $L$ become red to indicate classe for the congruences pointing with the mouse in Con L.
 
 ![img](https://github.com/GottiPaolo/pyLattice/blob/main/img/dinamic_L_ConL.png)
+
+- you can rappresent a congruence with `L.show_congruence(congruence)`
+
+![img](https://github.com/GottiPaolo/pyLattice/blob/main/img/all_congruence_cube.png)
