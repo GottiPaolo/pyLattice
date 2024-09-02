@@ -85,8 +85,8 @@ if mostra_grafici:
 #Hasse diagram
 if mostra_grafici:
     P.hasse(shape = (200,200), show_labels = True, font_size=12)
-    pl.PoSet.hasse(Q,Q,H)
-    pl.PoSet.hasse(Q,Q,H, grid = (1,3))
+    pl.PoSet.hasse(Q,Q,H, shape = (450, 150))
+    pl.PoSet.hasse(Q,Q,H, grid = (1,3),shape = (450, 150))
 
 
 # Lattice
@@ -101,7 +101,7 @@ C_2 = pl.Lattice.from_chain(2)
 C_3 = pl.Lattice.from_chain(3)
 CW = C_2 * C_3
 if mostra_grafici:
-    C_2.hasse(C_3,CW)
+    C_2.hasse(C_3,CW,shape = (450, 150))
     CW.hasse(pl.Lattice.from_cw(2,3),shape = (400,200),  show_labels = True, font_size=12)
 
 #Chek if a poset is a lattice
@@ -129,6 +129,18 @@ if mostra_grafici:
 
 
 ### Congruencens
+
+#### All congruences on 3 pwst
+L = pl.Lattice.from_power_set(3)
+congs = L.all_congruenze()
+alls = [pl.Lattice.from_power_set(3) for c in congs]
+for a,c in zip(alls,congs):
+    a.get_hasse_variables()
+    a.show_congruence(c)
+
+if mostra_grafici:  
+    pl.Lattice.hasse(*alls,init = False, shape = (400,800), grid = (4,2))
+
 L = pl.Lattice.from_cw(2,3,4)
 
 print(L.calcola_congruenza(10,15)) # [0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2]
@@ -136,8 +148,13 @@ if mostra_grafici:
     L.hasse(L.CongruenceLattice(),shape = (500,250))
 
 if mostra_grafici:
-    L.dinamic_congruences()
+    L.dinamic_congruences(shape=(1400,700))
+    
 
+## Temp
+L = pl.Lattice.from_power_set(2)
+L = L + L + L
+L.dinamic_congruences(shape=(1400,700))
 
 ### DataSet
 cw = (2,3,3)
@@ -191,5 +208,5 @@ for fuzzy_d in ('BrueggemannLerche', 'LLEs'):
             hasses[-1].labels[-1] = f"{fuzzy_d} {t_n} {agg_function}"
             
 if mostra_grafici:       
-    pl.Lattice.hasse(*hasses[1:],show_labels=True, shape = (1800,900), 
-                 grid = (2,6), title = 'All', init = False)
+    pl.Lattice.hasse(*hasses[1:],show_labels=True, shape = (1200,900), 
+                 grid = (4,3), title = 'All', init = False)

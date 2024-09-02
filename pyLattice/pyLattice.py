@@ -1648,6 +1648,7 @@ class Finestra():
         
         takescreenshot = ImageGrab.grab(bbox=(x, y,x+ width,y+height))
         takescreenshot.save(f"PythonStuff/pyLattice/img/{self.title}.png")
+
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -1881,7 +1882,7 @@ class DataSet():
             
         return history_con,separations
         
-    def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation"):
+    def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation", labels_freq = True):
         if function_sep != "total_separation":
             raise ValueError("Non l'ho ancora implementato coglione")
         
@@ -1894,10 +1895,49 @@ class DataSet():
             Con_L.labels = [round(self.total_separation(DataSet.as_partition(con)),2) for con in Con_L]
 
         self.L.get_hasse_variables()
-        self.L.labels = [str(_f) for _f in self.f]
+        if labels_freq:
+            self.L.labels = [str(_f) for _f in self.f]
         self.L.dinamic_congruences(ConL = Con_L,init = False, shape = (1400,700), show_labels=True)
         
-        
+    def get_dataset(self,clusters,fuzzy_domination_function = "BrueggemannLerche", t_norm_function = "prod", t_conorm_function = None):
+        """
+        Questa funzione permette di ottenere un nuovo dataset come quoziente di una congruenza. 
+        Data una partizione ottengo il reticolo quoziente e le frequenze raggruppate
+        La logica algebrica per fare questo calcolo è semplicissima 
+        (si tratta di sommare delle sotto matrici nella matrice booleana con l'operatore "or" il risultato è la nuova matrice booleana)
+        Ma in pratica risulta complesso, devo studiare melgio la manipolazione delle matrici con numpy
+        Attualmente implementiamo una cosa molto poco efficiente, poi magari miglioreremo
+        """
+        partizione = DataSet.as_partition(clusters)
+        matrice_dominanza = [[0 if i!=j else 1 for i in range(len(partizione))] for j in range(len(partizione))]
+        for i,a in enumerate(partizione):
+            for j,b in enumerate(partizione):
+                if i < j:
+                    continue
+                next = False
+                for x in a:
+                    for y in b:
+                        if self.L.domination_matrix[x][y]:
+                            matrice_dominanza[i][j] = 1
+                            next = True
+                        elif self.L.domination_matrix[y][x]:
+                            matrice_dominanza[j][i] = 1
+                            next = True
+                    if next:
+                        continue
+                if next:
+                    continue
+                
+        freq_ = [0 for i in range(len(partizione))]
+        for i,clu in enumerate(partizione):
+            for e in clu:
+                freq_[i]+=self.f[e]
+                
+
+        return DataSet(Lattice(matrice_dominanza, X = [[self.L[i] for i in cluster] for cluster in partizione]),
+                       freq_,fuzzy_domination_function=fuzzy_domination_function,
+                       t_norm_function=t_norm_function,t_conorm_function=t_conorm_function)
+                            
 def index_wrapper(self,*lista, from_index = False, to_index = False, func):
     if from_index and to_index:
         return self.func(*lista)
@@ -2040,7 +2080,7 @@ SFIDE FUTURE
  5. [ ] Migliorare l'aspetto grafico:
     Non devo avere funzioni complesse ed illegibili, dovrei poter fare questa cosa
     - [ ] Una cazzo di griglia costumizzabile dai... L'equivalente di subplots in matplot lib per multigrafici
-    - [ ] Funzioni per evidenziare un insieme di punti o edge:
+    - [x_] Funzioni per evidenziare un insieme di punti o edge:
         Non devo avere la funzione apposta per evidenziare una congruenze, semplicemente devo calcolare 
         gli edge che la riguardano e passarli ad una funzione del tipo _evidenzia_edges(edges, color =(255,0,0), weight = 3_ 
         
@@ -2051,7 +2091,7 @@ SFIDE FUTURE
     - [ ]Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset
         Riordinare i punti in maniera tale di avere meno sovrapposizioni possibili e edges più corti possibili
         
-    - Upgradare l'algoritmo. So che c'è una mappa per gli elementi join-irriducibili in L to gli elementi join irriducibibli in ConL
+    - [X] Upgradare l'algoritmo. So che c'è una mappa per gli elementi join-irriducibili in L to gli elementi join irriducibibli in ConL
         Devo eseguire i seguenti due step ma dopo credo (cioè è ovvio) sia più conveniente passare a questo metodo:
         - Accertarmi che la mia tecnica per trovare gli elementi join irriducibili sia corretta
         - Identificare gli step per ottenere ConL dai suoi elementi join irriducibili.
