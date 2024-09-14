@@ -45,6 +45,19 @@ def get_all_linear_ex(A):
     return all_
 
 
+def compute_fuz_dom_mrp(P):
+    n = 0
+    matrice = pl.np.array([[0 for i in range(len(P))] for j in range(len(P))])
+    for est in get_all_linear_ex(P):
+        n+=1
+        for i in range(len(P)):
+            for j in range(i,len(P)):
+                if est.index(i) >= est.index(j):
+                    matrice[i][j] +=1
+                else:
+                    matrice[j][i]+=1
+    return matrice/n
+        
 def count_linear_ex(A):
     n = 0
     elementi = list(range(len(A)))
@@ -92,38 +105,11 @@ c = [
 
 
 
-n_righe = 10
-for j in range(2,n_righe + 2):
-    #print("riga",j-1)
-    b= [f'{i,j-i}' for i in range(1,j//2+1)]
-    a = [ count_linear_ex(pl.Lattice.from_cw(i,j-i)) for i in range(1,j//2+1)]
-    if  j % 2 == 1:
-        a += a[::-1]
-    else:
-        a += a[:-1][::-1]
-    #print(b)
-    print(a)
-    continue
-    for i in  range(1,j//2 + 1):
-        D = pl.Lattice.from_cw(i,j-i)
-        print(i,j-i)
-        print(count_linear_ex(D))
-
-quit()
-A = pl.Lattice.from_cw(5,4)
-exs = get_all_linear_ex(A)
-print(*exs,sep = '\n\n')
-
-for i in range(len(A)):
-    for j in range(i+1, len(A)):
-        if A.domination_matrix[i][j] or A.domination_matrix[j][i]:
-            continue
-        n=0
-        for ex in exs:
-            if ex.index(i) > ex.index(j):
-                n+=1
-        print(A[i],A[j],round(n/len(exs),4),n)
-        
-print(len(exs))
-A.hasse(show_labels=True,font_size=20)
-## Generiamo il codice per printare in mermaid l'albero
+P = pl.Lattice.from_chain(7) * pl.Lattice.from_chain(2)
+print(count_linear_ex(P))
+print(P.domination_matrix)
+m = compute_fuz_dom_mrp(P)
+print()
+for riga in m:
+    print([round(x,3) for x in riga])
+# print(compute_fuz_dom_mrp(P))

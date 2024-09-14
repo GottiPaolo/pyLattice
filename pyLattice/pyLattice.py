@@ -1,5 +1,4 @@
 import numpy as np
-#import p5
 import tkinter as tk
 from PIL import ImageGrab#Screeeeenshot fuck
 
@@ -1456,6 +1455,8 @@ class Finestra():
         self.shape = shape
         self.W = self.shape[0] / self.grid[1]
         self.H = self.shape[1] / self.grid[0]
+        self.selected_hasse = None
+        self.selected_circle = None
             
         # Crea Finestra
         self.root = tk.Tk()
@@ -1465,6 +1466,7 @@ class Finestra():
         self.canvas.pack(anchor=tk.CENTER, expand=True)
         self.disegna()
         self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
+        self.canvas.bind("<ButtonRelease-1>", self.deseleziona_pallino)  # Aggiunto evento per il rilascio del pulsante del mouse
         self.canvas.bind("<Configure>", self.resize)
         self.root.bind("j", self.show_all_irriducible)
         self.root.bind("r", self.reset)
@@ -1529,21 +1531,27 @@ class Finestra():
         mouse_x = evento.x % (self.shape[0] / self.grid[1])
         mouse_y = evento.y % (self.shape[1] / self.grid[0])
         
-        
-        # Trova cerchio
-        cerchio_selezionato = None
-        for i,node in enumerate(self.hasses[hasse_index].nodes):
-            node_x, node_y = node[0] * self.W, node[1] * self.H
-            distanza_q = ((mouse_x - node_x)**2 + (mouse_y - node_y)**2)
-            if distanza_q <= self.hasses[hasse_index].r ** 2 * 2:
-                cerchio_selezionato = i
-                break
+        # Seleziona il cerchio solo se non è già selezionato
+        if self.selected_hasse != hasse_index or self.selected_circle is None:
+            self.selected_hasse = hasse_index
+            self.selected_circle = None
+            # Trova cerchio
+            for i,node in enumerate(self.hasses[hasse_index].nodes):
+                node_x, node_y = node[0] * self.W, node[1] * self.H
+                distanza_q = ((mouse_x - node_x)**2 + (mouse_y - node_y)**2)
+                if distanza_q <= self.hasses[hasse_index].r ** 2 * 2:
+                    self.selected_circle = i
+                    break
 
         # Se un cerchio è stato selezionato, aggiorna la sua posizione
-        if cerchio_selezionato != None:
-          self.hasses[hasse_index].nodes[cerchio_selezionato] = (mouse_x / self.W, self.hasses[hasse_index].nodes[cerchio_selezionato][1])
-          #self.hasses[hasse_index].nodes[cerchio_selezionato]
-          self.disegna()
+        if self.selected_circle is not None:
+            self.hasses[self.selected_hasse].nodes[self.selected_circle] = (mouse_x / self.W, self.hasses[self.selected_hasse].nodes[self.selected_circle][1])
+            self.disegna()
+   
+    def deseleziona_pallino(self, evento):
+        """Funzione per deselezionare il pallino"""
+        self.selected_hasse = None
+        self.selected_circle = None
    
     def show_con(self, evento):
         row = int(evento.y  // self.H)
@@ -1998,6 +2006,17 @@ class CWDataSet(DataSet):
         self.sep = self.compute_separation()
         
     def BrueggemannLerche(self):
+        """
+        Calculates the Brueggemann-Lerche fuzzy dominance matrix for the lattice.
+        Returns:
+            list: A 2D list representing the fuzzy dominance matrix. Each element
+            in the matrix represents the degree of dominance between two elements
+            in the lattice. A value of 1 indicates strict dominance, a value of 0
+            indicates no dominance, and values between 0 and 1 represent fuzzy
+            dominance.
+        """
+        # Function implementation goes here
+        pass
         fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
         for p in range(len(self.L)):
             c_up_p = product([k - p_i   for k, p_i in zip(self.L.cw, self.L[p])]) # fuori dal ciclo risparmio ancora di più
