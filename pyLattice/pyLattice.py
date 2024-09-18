@@ -1011,7 +1011,7 @@ class PoSet:
         
         
     # Hasse semi-def     
-    def get_hasse_variables(self,labels = None, radius = 3, font_size = 12, vertex_color = None,
+    def get_hasse_variables(self,labels = None, radius = 4, font_size = 12, vertex_color = None,
                             nodes_color = None, stroke_weights = None):
         rows = get_righe(self.cover_matrix)
         cols = get_colonne(righe = rows)
@@ -1068,7 +1068,41 @@ class PoSet:
     def show_congruence(self, con, color = 'red'):
         self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
         
-           
+    def get_all_linear_ex(self):
+        all_ = []
+        elementi = list(range(len(self)))
+        estensione = []
+        indice = 0
+        step_back = False
+        reset_index = False
+        while True:
+            possibilie_scelte =  sorted(self.max_sub_set(elementi))
+            if step_back:
+                indice = possibilie_scelte.index(max_)
+                if indice < len(possibilie_scelte)-1:
+                    indice += 1
+                    step_back = False
+                    reset_index = True
+                else:
+                    if len(estensione) == 0:
+                        break
+                    elementi.insert(estensione[-1],estensione[-1])
+                    max_ = estensione[-1]
+                    estensione=estensione[:-1]
+                    continue
+            max_ = possibilie_scelte[indice]
+            if reset_index:
+                reset_index = False
+                indice = 0
+            estensione.append(max_)
+            elementi.remove(max_)
+            if len(elementi) == 0:
+                all_.append(estensione)
+                step_back = True
+                estensione=estensione[:-1]
+                elementi.insert(max_,max_)
+        return all_
+        
 class Lattice(PoSet):
     ## Personal Function
     def join(self,*args):
@@ -1350,7 +1384,7 @@ class Lattice(PoSet):
                         all_congruenze.append(new)
 
             inizio = futuro_inizio
-        all_congruenze.append(list(range(len(self)))) # AGGIUNGO ALLA FINE IDENTITÀ
+        all_congruenze.insert(0,list(range(len(self)))) # AGGIUNGO ALLA FINE IDENTITÀ
         return all_congruenze
 
     def CongruenceLattice(self, labels = False):
@@ -1463,7 +1497,7 @@ class Finestra():
         self.root.geometry(str(shape[0])+'x'+str(shape[1]))
         self.root.title(title)
         self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')
-        self.canvas.pack(anchor=tk.CENTER, expand=True)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
         self.disegna()
         self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
         self.canvas.bind("<ButtonRelease-1>", self.deseleziona_pallino)  # Aggiunto evento per il rilascio del pulsante del mouse
@@ -1498,12 +1532,12 @@ class Finestra():
                 if H.vertex_color[i] != 'black': #Diverso spessore
                     self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
                                             ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
-                                            width = 2, fill = H.vertex_color[i]
+                                            width = 3, fill = H.vertex_color[i]
                                             )
                 else:
                     self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
                                             ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
-                                            width = 1, fill = H.vertex_color[i]
+                                            width = 2, fill = H.vertex_color[i]
                         )
             
             # Disegna cerchi
@@ -1516,8 +1550,8 @@ class Finestra():
                 
             # Aggiungi etichette
                 if self.show_labels:
-                    self.canvas.create_text(X,
-                                            Y +  H.r*2 + H.font_size/2 ,
+                    self.canvas.create_text(X + H.r*1.5,
+                                            Y +  H.r*2 + H.font_size/2  ,
                                             font=f"Times {H.font_size}", text=H.labels[i])
                      
     def gestisci_movimento_mouse(self, evento):
@@ -1653,9 +1687,14 @@ class Finestra():
         width = self.canvas.winfo_width()
         height = self.canvas.winfo_height()    #get details about window
         print(height,self.shape[1])
+        r = 0.98 # zoom
         
-        takescreenshot = ImageGrab.grab(bbox=(x, y,x+ width,y+height))
-        takescreenshot.save(f"PythonStuff/pyLattice/img/{self.title}.png")
+        takescreenshot = ImageGrab.grab(
+            bbox=(int(x +(1-r) * width), 
+                  int(y+(1-r )* height), 
+                  int(x+ width*r), 
+                  int(y+height*r)))
+        takescreenshot.save(f"/Users/paologotti/Library/CloudStorage/OneDrive-Personale/Tesi/PythonStuff/pyLattice/img/{self.title}.png")
 
 # DataSet annd cluster class
 class DataSet():
@@ -1671,6 +1710,9 @@ class DataSet():
         #Fuzzy dom
         if fuzzy_domination_function == 'BrueggemannLerche':
             self.fuz_dom = self.BrueggemannLerche()
+            
+        elif fuzzy_domination_function == 'mrp':
+            self.fuz_dom = self.mutual_ranking_probability()
             
         elif callable(fuzzy_domination_function):
             self.fuz_dom = fuzzy_domination_function(self.L)
@@ -1723,6 +1765,18 @@ class DataSet():
                     fuz_dom[i][j] = d_ij
                     fuz_dom[j][i] = 1 - d_ij
         return fuz_dom
+    def mutual_ranking_probability(self):
+        n = 0
+        matrice = np.array([[0 for i in range(len(self.L))] for j in range(len(self.L))])
+        for est in self.L.get_all_linear_ex():
+            n+=1
+            for i in range(len(self.L)):
+                for j in range(i,len(self.L)):
+                    if est.index(i) >= est.index(j):
+                        matrice[i][j] +=1
+                    else:
+                        matrice[j][i]+=1
+        return matrice/n - np.identity(len(self.L))
          
     ## Costruire matrice di separation come 1 + \sum inb_{ikj}
     def in_beetwen(self, a,k,b):
@@ -1890,7 +1944,7 @@ class DataSet():
             
         return history_con,separations
         
-    def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation", labels_freq = True):
+    def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation", labels_freq = True, font_size = None):
         if function_sep != "total_separation":
             raise ValueError("Non l'ho ancora implementato coglione")
         
@@ -1905,6 +1959,10 @@ class DataSet():
         self.L.get_hasse_variables()
         if labels_freq:
             self.L.labels = [str(_f) for _f in self.f]
+        if font_size:
+            self.L.font_size = font_size
+            Con_L.font_size = font_size
+        # Con_L.hasse(init = False, show_labels=True)
         self.L.dinamic_congruences(ConL = Con_L,init = False, shape = (1400,700), show_labels=True)
         
     def get_dataset(self,clusters,fuzzy_domination_function = "BrueggemannLerche", t_norm_function = "prod", t_conorm_function = None):
@@ -2090,7 +2148,7 @@ class CWDataSet(DataSet):
                     fuzzy_dom_ab *= k1/k
                     fuz_dom[i][j] = fuzzy_dom_ab
                     
-        return fuz_dom
+        return np.array(fuz_dom)
    
 """
 SFIDE FUTURE
