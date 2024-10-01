@@ -2,10 +2,72 @@ import pyLattice.pyLattice as pl
 import tkinter as tk
 import random as r
 import copy
+from fractions import Fraction
 
+L = pl.Lattice.from_cw(3,3)
+exs = L.get_all_linear_ex()
+den = len(exs)
+for i,x in enumerate(L):
+    for j,y in enumerate(L[i+1:]):
+        if L.domination_matrix[i][j+i+1] or L.domination_matrix[j+i+1][i]:
+            continue
+        u,d = len(L.upset(i)), len(L.downset(i))
+        u_,d_ = len(L.upset(i+j+1)), len(L.downset(i+j+1))
+        num =len([a for a in exs if a.index(i) < a.index(j+i+1)])
+        fraction = Fraction(num, den)
+        print(x,y,u,d,u_,d_,num,fraction)
+    
+
+
+quit()
+def unisci(a,b):
+    M = [[0 for j in range(a+b)] for k in range(a+b)]
+    for i in range(a-1):
+        M[i][i+1] = 1
+    for j in range(b-1):
+        i = a + j
+        M[i][i+1] = 1
+    return M
+
+values = [len(pl.Lattice.from_cover_matrix(unisci(3,k)).get_all_linear_ex()) for k in range(1,20)]
+print(values)
+for a in range(2,5):
+    for b in range(a,a+20):
+        L = pl.Lattice.from_cover_matrix(unisci(a,b))
+        L.hasse()
+        print(a,b,'size',len(L.get_all_linear_ex()))
+quit()
+L = pl.Lattice.from_cw(3,2,3)
+L.get_hasse_variables()
+con = L.all_congruenze()
+ConL = L.CongruenceLattice()
+ConL.get_hasse_variables()
+for c in con:
+    L.show_congruence(c)
+    ConL.get_hasse_variables()
+    ConL.show_nodes([c], color = 'red', as_index = False)
+    L.hasse(ConL,init=False)
+L.dinamic_congruences()
+D = pl.CWDataSet((3,3),[r.randint(0,10) for i in range(9)])
+lles = D.LLEs()
+mrp = D.mutual_ranking_probability()
+bls = D.BrueggemannLerche()
+for i in range(9):
+    for j in range(9):
+        if  not (D.L.domination_matrix[i][j] or D.L.domination_matrix[j][i]):
+            # print(D.L[i],D.L[j])
+            # print('mrp',mrp[i][j])
+            # print('bls',bls[i][j])
+            # print('lles',lles[i][j])
+            print('\\hline')
+            print(D.L[i], D.L[j], f'{mrp[i][j]:.2f}', f'{bls[i][j]:.2f}', f'{lles[i][j]:.2f}', sep=' & ')
+            #print()
+L.hasse(show_labels = True, font_size = 27)
+exte = [pl.PoSet.from_function([L[i] for i in e],lambda x,y : e.index(L.obj.index(x)) > e.index(L.obj.index(y))) for e in L.get_all_linear_ex()]
+L.hasse(*exte, show_labels = True, font_size = 27,grid = (1,(len(exte)+1)))
 
 D = pl.CWDataSet((2,2,3),[r.randint(0,10) for i in range(12)])
-D.estetic_rappresentation(labels_freq = False, font_size = 20)
+D.estetic_rappresentation(labels_freq = False, font_size = 20,)
 
 
 

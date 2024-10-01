@@ -225,91 +225,69 @@ def numero_blocchi(con):
     return n
 
 #### FCA Function
-def primes_o(oggetto,relation_matrix,nAtt):
-    """
-    Funzione ' su un gruppo di oggetti
-    """
-    att = list(range(nAtt))
-    for g in oggetto:
-        for a in range(nAtt):
-            if a in att and relation_matrix[g][a] == 0:
-                att.remove(a)
-    return att
+def primes_e(rows,matrix):
+    return {col for col in range(len(matrix[0])) if all(matrix[row][col] == 1 for row in rows)}
 
-def primes_a(attributo,relation_matrix,nOgg):
-    """
-    Funzione ' su un gruppo di attributi    
-    """
-    ogg = list(range(nOgg))
-    for a in attributo:
-        for g in range(nOgg):
-            if g in ogg and relation_matrix[g][a]==0:
-                ogg.remove(g)
-    return ogg
+def primes_i(cols,matrix):
+    return {row for row in range(len(matrix)) if all(matrix[row][col] == 1 for col in cols)}
 
-def close_o(oggetto,relation_matrix,nAtt,nOgg):
-    return primes_a(primes_o(oggetto,relation_matrix,nAtt),relation_matrix,nOgg)
 
-def close_a(attribbuto,relation_matrix,nOgg,nAtt):
-    return primes_o(primes_a(attribbuto,relation_matrix,nOgg),relation_matrix,nAtt)
+def fca(relation_matrix):
+    for _ in range(len(relation_matrix[0])):
+        m_irr = []
+        for _ in range(len(relation_matrix[0])):
+            e = primes_i([_],relation_matrix)
+            j = primes_e(e,relation_matrix)
+            if (e,j) not in m_irr:
+                m_irr.append((e,j))
+                
+    for _ in range(len(relation_matrix)):
+            j_irr = []
+            for _ in range(len(relation_matrix)):
+                i = primes_e([_],relation_matrix)
+                j = primes_i(i,relation_matrix)
+                if (j,i) not in j_irr:
+                    j_irr.append((j,i))
+                    
+    if len(j_irr) < len(m_irr):
+        all_ = [a for a in j_irr]
+        new = [a for a in j_irr]
 
-def fca(relation_matrix,incrementoPercentuale = 0.01):
-    # thatsa difficult
-    nOgg = len(relation_matrix)
-    nAtt = len(relation_matrix[0])
-    extent = []
-    intent = []
-    labelsO = []
-    labelsA = []
-    pr=0
-    if nOgg<nAtt:
-        for i in range(2**nOgg):
-            if (i/2**nOgg)//incrementoPercentuale>pr:
-                pr=i/2**nOgg
-                print(round(pr,3))
-            sub_set_ogg = []
-            numero = i
-            for k in range(numero):
-                if numero%2==1:
-                    sub_set_ogg.append(k)
-                numero//=2
-            close_obejct = close_o(sub_set_ogg,relation_matrix,nAtt,nOgg)
-            if close_obejct not in extent:
-                extent.append(close_obejct)
-                intent.append(primes_o(close_obejct,relation_matrix,nAtt))
-                labelsO.append([])
-                labelsA.append([])
-            if len(sub_set_ogg) == 1:
-                labelsO[extent.index(close_obejct)].append(sub_set_ogg[0])
+        while len(new) != 0:
+            nxt_new = []
+            for i,a in enumerate(new):
+                for b in new[i+1:]:
+                    join = a[0] | b[0]
+                    i = primes_e(join,relation_matrix)
+                    concept = (primes_i(i,relation_matrix),i)
+                    if concept not in all_:
+                        all_.append(concept)
+                        nxt_new.append(concept)
+            new = nxt_new 
+        empty = (primes_e(primes_i(set(),relation_matrix),relation_matrix),primes_i(set(),relation_matrix))
+        if empty not in all_:
+            all_.append(empty)
+        return Lattice.from_function(all_,lambda x,y: x[0]<=y[0]), j_irr, m_irr
 
-        for i in range(nAtt):
-            fc = close_a([i],relation_matrix,nOgg,nAtt)
-            labelsA[intent.index(fc)].append(i)
-    else:
-        for i in range(2**nAtt):
-            if (i/2**nAtt)//incrementoPercentuale>pr//incrementoPercentuale:
-                pr=i/2**nAtt
-                print(round(pr,3))
-            sub_set_att = []
-            numero = i
-            for k in range(numero):
-                if numero%2==1:
-                    sub_set_att.append(k)
-                numero//=2
-            close_att = close_a(sub_set_att,relation_matrix,nOgg,nAtt)
-            if close_att not in intent:
-                intent.append(close_att)
-                extent.append(primes_a(close_att,relation_matrix,nOgg))
-                labelsO.append([])
-                labelsA.append([])
-            if len(sub_set_att) == 1:
-                labelsA[intent.index(close_att)].append(sub_set_att[0])
+    else:                 
+        all_ = [a for a in m_irr]
+        new = [a for a in m_irr]
 
-        for i in range(nOgg):
-            fc = close_o([i],relation_matrix,nAtt,nOgg)
-            labelsO[extent.index(fc)].append(i)
-            
-    return extent,intent,labelsO, labelsA
+        while len(new) != 0:
+            nxt_new = []
+            for i,a in enumerate(new):
+                for b in new[i+1:]:
+                    join = a[1] | b[1]
+                    e = primes_i(join,relation_matrix)
+                    concept = (e,primes_e(e,relation_matrix))
+                    if concept not in all_:
+                        all_.append(concept)
+                        nxt_new.append(concept)
+            new = nxt_new 
+        empty = (primes_e(set(),relation_matrix), primes_i(primes_e(set(),relation_matrix),relation_matrix))
+        if empty not in all_:
+            all_.append(empty)
+        return Lattice.from_function(all_,lambda x,y: x[0]<=y[0]), j_irr, m_irr
 
 #### Support function
 def fact(n):
@@ -925,24 +903,9 @@ class PoSet:
         """
         FCA per niente ottimizzata, letteralmente scorrendo tutto il powerset di extent / intent
         """
-        if not oggetti:
-            oggetti=list(range(relation))
-        if not attributi:
-            attributi=list(range(relation[0]))
-        # Bah si potrebbe fare MOooolto meglio
-        extent,intent,labelsO, labelsA = fca(relation)
-
-        Obj = []
-        for exte, inte in zip (labelsO, labelsA):
-            testo = '-'
-            O = list(map(lambda i: oggetti[i], exte))
-            A = list(map(lambda i: attributi[i], inte))
-            for i in O:
-                testo += f' {i}'
-            testo+='\n='
-            for i in A:
-                testo += f' {i}'
-            Obj.append(testo)
+        L = fca(relation)
+        L.get_hasse_variables()
+        L.labels = []
         return Lattice.from_function(list(zip(extent,intent)),lambda x,y: set(x[0])<=set(y[0]),Obj)
 
     def as_lattice(self):
@@ -1063,7 +1026,7 @@ class PoSet:
         if as_index:
             self.nodes_color = [color if i in nodes else self.nodes_color[i] for i in range(len(self))]
         else:
-            self.nodes_color = [color if i in nodes else self.nodes_color[i] for i in range(self)]
+            self.nodes_color = [color if k in nodes else self.nodes_color[i] for i,k in enumerate(self)]
             
     def show_congruence(self, con, color = 'red'):
         self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
@@ -1232,6 +1195,22 @@ class Lattice(PoSet):
         domination_matrix = np.where( domination_matrix > 0, 1, 0)
         
         return Lattice(domination_matrix,X,labels)
+    
+    def from_fca(oggetti:list[str],attributi:list[str],relation_matrix):
+        """Prima o poi la migliorerò, per ora mi interessa che funzioni"""
+        L, j_irr, m_irr  = fca(relation_matrix)
+        L.get_hasse_variables()
+        labels = []
+        for x in L:
+            l = ''
+            if x in m_irr:
+                l += ' '.join([attributi[i].upper() for i in x[1]])
+            if x in j_irr:
+                l +='\n\n'+' '.join([oggetti[i] for i in x[0]])
+            labels.append(l)
+                            
+        L.labels = labels
+        return L
     
     def dual(self):
         """
@@ -1453,7 +1432,7 @@ class Lattice(PoSet):
         """
         return Lattice.from_function(genera_cw(lista),component_wise)
 
-   
+
 class CW(Lattice):
     def __init__(self, *cw):
         self.cw = cw
@@ -1551,7 +1530,7 @@ class Finestra():
             # Aggiungi etichette
                 if self.show_labels:
                     self.canvas.create_text(X + H.r*1.5,
-                                            Y +  H.r*2 + H.font_size/2  ,
+                                            Y +  H.r*2 + H.font_size/2 ,
                                             font=f"Times {H.font_size}", text=H.labels[i])
                      
     def gestisci_movimento_mouse(self, evento):
@@ -2032,7 +2011,7 @@ class CWDataSet(DataSet):
         #Fuzzy dom
         if fuzzy_domination_function == 'BrueggemannLerche':
             self.fuz_dom = self.BrueggemannLerche()
-        
+
         elif fuzzy_domination_function == 'LLEs':
             self.fuz_dom = self.LLEs()
             
