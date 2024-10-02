@@ -2,6 +2,9 @@ import numpy as np
 import tkinter as tk
 from PIL import ImageGrab#Screeeeenshot fuck
 
+
+"Devo aggiornare con tutte le impostazioni grafiche carine che ho inserito nel PoSet di OBS"
+
 #### Hasse functions
 def get_riga_punto(cover_matrix,p,righe):
     """
@@ -233,21 +236,24 @@ def primes_i(cols,matrix):
 
 
 def fca(relation_matrix):
+    labels_a = [] # Le liste contengono il concetto in cui vengono mappati rispettivamente attributi e oggetti
+    labels_o = [] # Le liste contengono il concetto in cui vengono mappati rispettivamente attributi e oggetti
+
+    m_irr = []
     for _ in range(len(relation_matrix[0])):
-        m_irr = []
-        for _ in range(len(relation_matrix[0])):
-            e = primes_i([_],relation_matrix)
-            j = primes_e(e,relation_matrix)
-            if (e,j) not in m_irr:
-                m_irr.append((e,j))
+        e = primes_i([_],relation_matrix)
+        j = primes_e(e,relation_matrix)
+        labels_a.append((e,j))
+        if (e,j) not in m_irr:
+            m_irr.append((e,j))
                 
+    j_irr = []
     for _ in range(len(relation_matrix)):
-            j_irr = []
-            for _ in range(len(relation_matrix)):
-                i = primes_e([_],relation_matrix)
-                j = primes_i(i,relation_matrix)
-                if (j,i) not in j_irr:
-                    j_irr.append((j,i))
+        i = primes_e([_],relation_matrix)
+        j = primes_i(i,relation_matrix)
+        labels_o.append((j,i))
+        if (j,i) not in j_irr:
+            j_irr.append((j,i))
                     
     if len(j_irr) < len(m_irr):
         all_ = [a for a in j_irr]
@@ -267,7 +273,7 @@ def fca(relation_matrix):
         empty = (primes_e(primes_i(set(),relation_matrix),relation_matrix),primes_i(set(),relation_matrix))
         if empty not in all_:
             all_.append(empty)
-        return Lattice.from_function(all_,lambda x,y: x[0]<=y[0]), j_irr, m_irr
+        return Lattice.from_function(all_,lambda x,y: x[0]<=y[0]),labels_a, labels_o
 
     else:                 
         all_ = [a for a in m_irr]
@@ -284,10 +290,10 @@ def fca(relation_matrix):
                         all_.append(concept)
                         nxt_new.append(concept)
             new = nxt_new 
-        empty = (primes_e(set(),relation_matrix), primes_i(primes_e(set(),relation_matrix),relation_matrix))
+        empty = (primes_i(set(),relation_matrix),primes_e(primes_i(set(),relation_matrix),relation_matrix))
         if empty not in all_:
             all_.append(empty)
-        return Lattice.from_function(all_,lambda x,y: x[0]<=y[0]), j_irr, m_irr
+        return Lattice.from_function(all_,lambda x,y: x[0]<=y[0]), labels_a, labels_o
 
 #### Support function
 def fact(n):
@@ -1198,16 +1204,15 @@ class Lattice(PoSet):
     
     def from_fca(oggetti:list[str],attributi:list[str],relation_matrix):
         """Prima o poi la migliorerò, per ora mi interessa che funzioni"""
-        L, j_irr, m_irr  = fca(relation_matrix)
+        L, labels_a, labels_o  = fca(relation_matrix)
         L.get_hasse_variables()
-        labels = []
-        for x in L:
-            l = ''
-            if x in m_irr:
-                l += ' '.join([attributi[i].upper() for i in x[1]])
-            if x in j_irr:
-                l +='\n\n'+' '.join([oggetti[i] for i in x[0]])
-            labels.append(l)
+        labels =[[[''],['']] for x in L]
+        for i,a in enumerate(labels_a):
+            labels[L.obj.index(a)][0].append(attributi[i])
+            
+        for i,a in enumerate(labels_o):
+            labels[L.obj.index(a)][1].append(oggetti[i])
+        labels = [' '.join([str(a).upper() for a in l[0]]) + '\n\n' + ' '.join([str(_) for _ in l[1]])for l in labels]
                             
         L.labels = labels
         return L
@@ -1483,14 +1488,47 @@ class Finestra():
         self.canvas.bind("<Configure>", self.resize)
         self.root.bind("j", self.show_all_irriducible)
         self.root.bind("r", self.reset)
+        self.root.bind("l", self.show_labels_true)
+        self.root.bind("p", self.show_labels_poset)
+        self.root.bind("c", self.side_dinamic_con)
+        self.root.bind("d", self.dedekind)
         self.root.bind("<Up>", self.show_upset)
         self.root.bind("<Down>", self.show_downset)
-        self.root.bind("s", self.save)
-        self.root.bind("d", self.capture_window)
+        self.root.bind("<Right>", self.side_show_contest)
+        self.root.bind("<Left>", self.side_show_contest_fca)
+        #self.root.bind("s", self.save)
+        self.root.bind("s", self.capture_window)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
             self.root.bind('<Button-2>', self.applica_con)
+            self.lattice_index = 0
+            self.con_index = 1
         self.root.mainloop()
+       
+    def show_labels_true(self,event):
+        self.show_labels = not self.show_labels
+        self.disegna()   
+        
+    def show_labels_poset(self, event):
+        hasse_index,punto = self.identifica_punto(event.x, event.y)
+        row = hasse_index // self.grid[1]
+        col = hasse_index % self.grid[1]
+        for i,(fx,fy) in enumerate(self.hasses[hasse_index].nodes):
+            X = (col + fx) * self.W #X del cerchio
+            Y = (row +fy) * self.H #Y del cerchio
+            self.canvas.create_text(X,
+                        Y +  self.hasses[-1].r*2 + self.hasses[hasse_index].font_size/2 ,
+                        font=f"Times {self.hasses[hasse_index].font_size}", text=self.hasses[hasse_index].labels[i], fill = 'black')
+            
+    def dedekind(self, event):
+        hasse_index,punto = self.identifica_punto(event.x, event.y)
+        A = Lattice.from_fca(self.hasses[hasse_index].obj,self.hasses[hasse_index].obj,self.hasses[hasse_index].domination_matrix)
+        A.get_hasse_variables()
+        self.hasses += (A,)
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()
                
     def resize(self, event):
         self.shape = (event.width,event.height)
@@ -1570,7 +1608,7 @@ class Finestra():
         row = int(evento.y  // self.H)
         col = int(evento.x  // self.W)
         hasse_index = row*self.grid[1] + col
-        if hasse_index == 0:
+        if hasse_index != self.con_index:
             # Vogliamo farlo solo per CONL che è hasses[1]!!
             return
         # relativizza posizione del mouse nel riquadro di interesse nella griglia 
@@ -1589,7 +1627,7 @@ class Finestra():
             
         # Se un cerchio è stato selezionato, mostra la relativa Congruenza
         if cerchio_selezionato != None: # figa e lo 0??
-            self.hasses[0].show_congruence(self.hasses[1][cerchio_selezionato])
+            self.hasses[self.lattice_index].show_congruence(self.hasses[hasse_index][cerchio_selezionato])
             self.disegna()
  
     def show_all_irriducible(self, skip):
@@ -1623,6 +1661,7 @@ class Finestra():
             if distanza_q <= self.hasses[hasse_index].r ** 2 * 2:
                 cerchio_selezionato = i
                 return hasse_index, cerchio_selezionato
+        return hasse_index, None
 
     def applica_con(self, evento):
         hasse_index,punto = self.identifica_punto(evento.x, evento.y)
@@ -1646,7 +1685,68 @@ class Finestra():
         hasse,punto = self.identifica_punto(evento.x,evento.y)
         self.hasses[hasse].show_nodes(self.hasses[hasse].downset(punto), 'red')  
         self.disegna()
-
+    
+    def side_show_contest(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        A = self.hasses[hasse].sub_poset(self.hasses[hasse].downset(punto) | self.hasses[hasse].upset(punto))
+        A.get_hasse_variables()
+        if len(self.hasses) == 2:
+            self.hasses = self.hasses[:1] + (A,)
+        else:
+            self.hasses += (A,)
+            self.grid = (1, len(self.hasses))
+            self.W = self.shape[0] / self.grid[1]
+            self.H = self.shape[1] / self.grid[0]
+        self.disegna()
+        self.last_label_temp(None)
+        
+    def side_show_contest_fca(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses[hasse].show_nodes((punto,),'lightgreen')
+        T = self.hasses[hasse].sub_poset(self.hasses[hasse].downset(punto) | self.hasses[hasse].upset(punto))
+        A = Lattice.from_fca(T.obj,T.obj,T.domination_matrix)
+        A.get_hasse_variables()
+        A.labels = T.obj
+        del T
+        self.hasses = self.hasses[hasse],A
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()
+        self.last_label_temp(None)
+        
+    def side_dinamic_con(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.canvas.bind('<Motion>',self.show_con)
+        self.root.bind('<Button-2>', self.applica_con)
+        self.lattice_index = hasse
+        self.con_index = len(self.hasses)
+        self.hasses += (self.hasses[hasse].CongruenceLattice(), )
+        self.hasses[-1].get_hasse_variables()
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()        
+        row = 0
+        col = hasse
+        for i,(fx,fy) in enumerate(self.hasses[col].nodes):
+            X = (col + fx) * self.W #X del cerchio
+            Y = (row +fy) * self.H #Y del cerchio
+            self.canvas.create_text(X,
+                        Y +  self.hasses[col].r*2 + self.hasses[hasse].font_size/2 ,
+                        font=f"Times {self.hasses[hasse].font_size}", text=self.hasses[hasse].labels[i], fill = 'black')
+        
+    def last_label_temp(self,evento):
+        row = 0
+        col = 1
+        for i,(fx,fy) in enumerate(self.hasses[-1].nodes):
+            X = (col + fx) * self.W #X del cerchio
+            Y = (row +fy) * self.H #Y del cerchio
+            self.canvas.create_text(X,
+                        Y +  self.hasses[-1].r*2 + self.hasses[-1].font_size/2 ,
+                        font=f"Times {self.hasses[-1].font_size}", text=self.hasses[-1].labels[i], fill = 'black')
+               
+        
     def save(self,evento):
         """
         Salva il contenuto del canvas come immagine PNG.
