@@ -1,6 +1,28 @@
 import numpy as np
 import tkinter as tk
 from PIL import ImageGrab#Screeeeenshot fuck
+"""
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it.
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than *right* now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+"""
+
 
 
 "Devo aggiornare con tutte le impostazioni grafiche carine che ho inserito nel PoSet di OBS"
@@ -270,7 +292,7 @@ def fca(relation_matrix):
                         all_.append(concept)
                         nxt_new.append(concept)
             new = nxt_new 
-        empty = (primes_e(primes_i(set(),relation_matrix),relation_matrix),primes_i(set(),relation_matrix))
+        empty = (primes_i(primes_e(set(),relation_matrix),relation_matrix),primes_e(set(),relation_matrix))
         if empty not in all_:
             all_.append(empty)
         return Lattice.from_function(all_,lambda x,y: x[0]<=y[0]),labels_a, labels_o
@@ -1212,7 +1234,7 @@ class Lattice(PoSet):
             
         for i,a in enumerate(labels_o):
             labels[L.obj.index(a)][1].append(oggetti[i])
-        labels = [' '.join([str(a).upper() for a in l[0]]) + '\n\n' + ' '.join([str(_) for _ in l[1]])for l in labels]
+        labels = ['\n\n'+' '.join([str(a).upper() for a in l[0]]) + '\n\n' + ' '.join([str(_) for _ in l[1]])for l in labels]
                             
         L.labels = labels
         return L
@@ -1632,7 +1654,10 @@ class Finestra():
  
     def show_all_irriducible(self, skip):
         for h in self.hasses:
-            h.show_irriducible()
+            try:
+                h.show_irriducible()
+            except AttributeError:
+                pass
         self.disegna()
         
     def reset(self, skip):
