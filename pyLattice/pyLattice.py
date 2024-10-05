@@ -25,8 +25,6 @@ Namespaces are one honking great idea -- let's do more of those!
 
 
 
-"Devo aggiornare con tutte le impostazioni grafiche carine che ho inserito nel PoSet di OBS"
-
 #### Hasse functions
 def get_riga_punto(cover_matrix,p,righe):
     """
@@ -73,7 +71,7 @@ def get_colonne(righe):
 
 def converti(riga,colonna,r,righe,min_x,max_x,min_y,max_y, hasse_mode = 4):
     """
-    Questa funzione è ufficialmente obsoleta e inutilizzata, 
+    Questa funzione è ufficialmente OBSOLETA e inutilizzata, 
     Per ora voglio mantenerala per avere lo spunto per fare qualche improvmnet futur
     con diversi opzionoi di diagramma di Hasse, si basava sulla funzione mappa che ho rimosso ma semplicemente
     mappa(a,min,max,MIN,MAX) = (a - min) / (max - min) * (MAX - MIN) + MIN
@@ -172,6 +170,14 @@ def mappa(x,old_min,old_max,new_min,new_max):
         return (x - old_min) / (old_max - old_min) * (new_max - new_min) + new_min
         
 #### Congruence Function
+"""
+Pormemoria: una congruenza su un reticolo L di n elementi è rappresentata da una lista "con" di n numeri dove con[i] == con[j] -> L[i] \equiv L[j]
+Inoltre il numero presente nella lista coincide con l'indice dell'elemento minore in quella congruenza.
+
+con = [1,1,3,3] NON è una congruenza, l'elemento "0" non può avere indice "1". 
+l'equivalente corretto è: [0,0,2,2]
+"""
+
 def unisci(a,b,blocchi):
     """
     Questa funzione deve solo fare in modo che in una congruenza (blocchi) risulti che gli elementi a e b abbiano lo stesso valore
@@ -189,7 +195,7 @@ def unisci(a,b,blocchi):
 
 def confronta_blocchi(b1,b2):
     """
-    Verifica se una cingruenza domina un'altra in ConL 
+    Verifica se una congruenza domina un'altra in ConL 
     
     Per come ho strutturato le congruenze b2 domina b1 se tutte le "identità" in b1 sono presenti anche in b2
     Quindi controllo tutte le coppie di b1, se incontro anche solo una coppia uguale in b1 e differente in b2 allora restituisco falso
@@ -239,7 +245,7 @@ def unisci_congruenze(C1,C2):
 
 def numero_blocchi(con):
     """
-    Conta il numero di blocchi in una congruenza 
+    Conta il numero di blocchi (classsi di congruenze) in una congruenza 
     coincide concettualmente con len(A.unique()) ma sfrutta la struttura della congruenze
     Non so se lo uso davvero ma sono sicuro che in caso si possa migliorare
     """
@@ -251,13 +257,17 @@ def numero_blocchi(con):
 
 #### FCA Function
 def primes_e(rows,matrix):
+    """data una matrice di relazione binaria ed un sottoinsieme di righe restitusice l'insieme di colonne comuni in tutte le righe"""
     return {col for col in range(len(matrix[0])) if all(matrix[row][col] == 1 for row in rows)}
 
 def primes_i(cols,matrix):
+    """data una matrice di relazione binaria ed un sottoinsieme di colonne restitusice l'insieme di righe comuni in tutte le colonne"""
     return {row for row in range(len(matrix)) if all(matrix[row][col] == 1 for col in cols)}
 
 
 def fca(relation_matrix):
+    """Calcola i concetti formali di una matrice di relazione binaria partendo dal fatto che quelli generati dai singoli elementi 
+    sono meet dense o join dense. Si può implementare sicuramente studiando """
     labels_a = [] # Le liste contengono il concetto in cui vengono mappati rispettivamente attributi e oggetti
     labels_o = [] # Le liste contengono il concetto in cui vengono mappati rispettivamente attributi e oggetti
 
@@ -319,6 +329,7 @@ def fca(relation_matrix):
 
 #### Support function
 def fact(n):
+    """n!"""
     if n == 0:
         return 1
     for m in range(2,n):
@@ -326,6 +337,7 @@ def fact(n):
     return n
 
 def permutazioni(lista):
+    """Penso non mi serva, comuqnue un generatore di permutazioni di una lista per iterare su essi."""
     dimensione_lista = len(lista)
     for indice in range(fact(dimensione_lista)):
         dati = [a for a in lista]
@@ -337,6 +349,9 @@ def permutazioni(lista):
         yield permutazione
         
 def permutezione_esima(indice,lista):
+    """
+    Ottiene l'i-esima permutazione di una lista, le permutazioni sono ordinate in maniera lessicografica rispetto a come è fornita la lista
+    """
     dimensione_lista = len(lista)
     permutazione = []
     for i in range(dimensione_lista):
@@ -372,6 +387,8 @@ def genera_cw(lista : list[int]) -> list[tuple]:
     """
     Funzione pergenerare tutti i possibili profili del cartesiano di n valori, ad esempio
     genera_cw([3,2]): -> [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
+    
+    Si può ottimizzare con librerie estenerne, ma per ora va bene così
     """
     if len(lista) == 1:
         return [(i,) for i in range(lista[0])]
@@ -385,7 +402,7 @@ def genera_cw(lista : list[int]) -> list[tuple]:
 
 def permuta_matrice(matrice,nuovo_ordine):
     """
-    riordina una matrice in maniera sensata scriverò dopo
+    riordina una matrice in maniera sensata, primo tentativo di migliorare Hasse. Fallimentare
     """
     new_m = [[0 for i in range(len(matrice))] for j in range(len(matrice))]
     
@@ -407,7 +424,7 @@ def product(lista):
 
 def join_irriducible_cw(*cw):
     """
-    Questa funzione calcola le congruenza join-irriducibili in un reticolo component wise sfruttando molte proprietà
+    Questa funzione calcola le congruenza join-irriducibili in un reticolo component wise sfruttando la teoria.
     I dettagli matematici li tratterò a parte, ma sono una generalizzazione dei cambi di base
     """
     ###### FUNZIONA CAZZO
@@ -763,12 +780,10 @@ class PoSet:
     def to_lattice_fca(self):
         """
         Esegue il completamento di Dedekind tramite l'FCA
-        (tutto sommato inutile)
+        
+        Perchè non chiamarla semplicemente "dedekind_completion"?..
         """
-        extent,intent,labelsO, labelsA= fca(self.domination_matrix)
-        labelsO = [self.labels[x[0]] if len(x)==1 else '' for x in labelsO]
-        return Lattice.from_function(list(zip(extent,intent)),lambda x,y: set(x[0])<=set(y[0]),labelsO)
-        #return Lattice.from_function(list(zip(extent,intent)),lambda x,y: set(x[0])<=set(y[0]),intent)
+        return Lattice.from_fca(self.obj,self.obj,self.domination_matrix)
        
     def isomorphic(self,other) -> bool:
         """
@@ -806,6 +821,12 @@ class PoSet:
         pota
         """
         return iter(self.obj)
+    
+    def index(self,elemento):
+        """
+        pota
+        """
+        return self.obj.index(elemento)
     
     def __mul__(self,other):
         """
@@ -861,6 +882,24 @@ class PoSet:
         assert len(self) == len(other)
         return PoSet(np.where(self.domination_matrix+other.domination_matrix > 1,1,0))
     
+    def __or__(self, other):
+        """
+        Definisce l'operatore & come l'intersezione di due PoSet.
+        I due poset devono essere grandi uguli e ordinati uguali, vengono matenute tutte le dominaanze comuni
+        ma se una dominanza è presente in uno e nell'altro è presente in maniera inversa allora i due punti vengono collasati
+        Può funzionare? Non lo so sinceramente
+        """
+        pass
+
+    def __and__(self, other):
+        """
+        Definisce l'operatore & come l'intersezione di due PoSet.
+        I due poset devono essere grandi uguli e ordinati uguali, vengono matenute solo le dominaanze comuni
+        """
+        assert len(self) == len(other)
+        new_matrix = np.array([[1 if s and o else 0 for s,o in zip(s_,o_)] for s_,o_ in zip(self.domination_matrix,other.domination_matrix)])
+        return PoSet(new_matrix,self.obj)
+    
     def __neg__(self):
         """
         Non particolarmente essenziale (anzi rischia di fare danni) ma così posso calcolare il duale di P come -P
@@ -869,6 +908,10 @@ class PoSet:
         return self.dual()
     
     def sort(self):
+        """
+        Metodo naive per ordinare una matrice di dominanze (e oggetti) in base al numero di dominanze ricevute e date
+        nella speranza di migliorare la visualizzazione di Hassse
+        """
         lista = list(range(len(self)))
         dati = [(sum(self.cover_matrix[i]), sum([self.cover_matrix[k][i] for k in range(len(self))])) for i in range(len(self))]
         lista.sort(key = lambda i:dati[i])
@@ -925,17 +968,11 @@ class PoSet:
         return PoSet(domination_matrix,X,labels)
     
     def from_antichain(n):
-        return PoSet.from_function(list(range(n)), lambda a,b : a==b)
+        """
+        antichain
+        """
+        return PoSet(np.eye(n))
      
-    def FCA(relation, oggetti=None, attributi=None):
-        """
-        FCA per niente ottimizzata, letteralmente scorrendo tutto il powerset di extent / intent
-        """
-        L = fca(relation)
-        L.get_hasse_variables()
-        L.labels = []
-        return Lattice.from_function(list(zip(extent,intent)),lambda x,y: set(x[0])<=set(y[0]),Obj)
-
     def as_lattice(self):
         """
         funzione per convertire il poset in reticolo. I reticoli hanno alcune funzioni che i PoSet non hanno
@@ -956,6 +993,8 @@ class PoSet:
           
     def dedekind_completetion(self, nice_labels = False):
         """
+        Solo un inizio per capire, fa computazionalmente schifo
+        
         Implementanto in versione stupida O(2**n)
         per ogni A \subset P, ovver per ogni A \in Poweset(P)
         calcoliamo A^u^l e poi ordiniamo i risultati per inclusione
@@ -986,6 +1025,9 @@ class PoSet:
         return Lattice.from_function(cuts,lambda a,b: a<= b)
       
     def restituiscimi_cover_matrix(self) -> None:
+        """
+        Funzione di supporto per stampare nel terminale la matrice di copertura nel caso debba esportarla
+        """
         for i,k in enumerate(self.cover_matrix):
             if i ==0 :
                 print('[',[int(a) for a in k],',')
@@ -997,13 +1039,17 @@ class PoSet:
                 print([int(a) for a in k],']')
       
     def _simple(self):
+        """
+        funzione di supporto per convertire oggetti e labels in numeri progressivi
+        """
         self.obj = [str(i) for i in range(len(self))]
         self.labels = [str(i) for i in range(len(self))]
-        
-        
-    # Hasse semi-def     
+          
     def get_hasse_variables(self,labels = None, radius = 4, font_size = 12, vertex_color = None,
                             nodes_color = None, stroke_weights = None):
+        """
+        Funzione che genera tutte le variabili necessarie per la rappresentazione di Hasse, di base il poset non le possiede
+        """
         rows = get_righe(self.cover_matrix)
         cols = get_colonne(righe = rows)
         gaps_x = [rows.count(x) ** -1 for x in rows]
@@ -1034,7 +1080,7 @@ class PoSet:
     def hasse(*PoSets, shape : tuple = (500,500), grid: tuple = None, show_labels : bool = False, 
                    title = 'PoSet', init = True, radius = None, font_size = None):
         """
-        Come distinguo tra l'aspetto grafico e quello concettuale
+        Funzione che genera il diagramma di Hasse
         """
         if init:
             for P in PoSets:
@@ -1048,18 +1094,34 @@ class PoSet:
         return Finestra(*PoSets, shape = shape, grid = grid, show_labels=show_labels, title = title)
  
     def show_percorso(self, nodes, color ='red'):
+        """
+        Data una lista di nodi (si suppone collegati) viene colorato il percorso che li congiunge nel reticolo
+        
+        Devo aggiungere più concetti di questo tipo, evidenziare sotto reticoli, antichain. 
+        QUESTA FUNZIONA CAMBIA I COLORI DI TUTTI I VERTICI, NON SOLO DI QUELLI DEL PERCORSO, quindi mi impedisce di mostrare diversi percorsi contemporaneamente
+        stupido Paolo! (IDEA carina: sullo stesso reticolo delle congruenze mostrare i diversi percorsi in base ai parametri di tuning)
+        """
         self.vertex_color =[color if (x in nodes and x!= nodes[-1] and nodes[nodes.index(x)+1] == y) or (y in nodes and y!= nodes[-1] and nodes[nodes.index(y)+1] == x) else 'black' for x,y in self.vertex]
        
     def show_nodes(self, nodes, color = 'black', as_index = True):
+        """
+        evidenzia di un altro colore i nodi passati 
+        """
         if as_index:
             self.nodes_color = [color if i in nodes else self.nodes_color[i] for i in range(len(self))]
         else:
             self.nodes_color = [color if k in nodes else self.nodes_color[i] for i,k in enumerate(self)]
             
     def show_congruence(self, con, color = 'red'):
+        """
+        Evidenzia una congruenza
+        """
         self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
         
     def get_all_linear_ex(self):
+        """
+        Genera tutte le estensioni lineari 
+        """
         all_ = []
         elementi = list(range(len(self)))
         estensione = []
@@ -1301,7 +1363,8 @@ class Lattice(PoSet):
   
     def calcola_congruenza(self,a,b):
         """
-        Calcola la più piccola congruenza che unisce a e b (intesi come indici)
+        Calcola la più piccola congruenza che unisce a e b (intesi come indici).
+        Punto centrale delle congruenze!
         
         Probabilmente può essere ottimizzato ma non mi interessa adesso
         """
@@ -1345,7 +1408,7 @@ class Lattice(PoSet):
         return blocchi
     
     def congruenze_elementari(self):
-        """UFFICIALMENTE DEPRECATO
+        """UFFICIALMENTE DEPRECATO --> calcolo direttamente quelle join irriducibili
         Deprecato perchè ho ristretto ancora l'insieme delle congruenze necessarie alle congruenze join_irriducibili!
         (non grazie a me, ahimé ma grazie a questo paper: COMPUTING CONGRUENCE LATTICES OF FINITE LATTICES RALPH FREESE)
         Calcola le congruenze che ho definito _elementari_ cioè quelle che uniscono i blocchi a e b, tali che a \prec b
@@ -1362,7 +1425,8 @@ class Lattice(PoSet):
     
     def congruenze_join_irriducibili(self):
         """
-        Calcola le congruenze join irriducibili cioè quelle che uniscono i blocchi a e b, tali che a \prec b ed a è join irriducibile
+        Calcola le congruenze join irriducibili cioè quelle che uniscono i blocchi a e b, 
+        tali che a \prec b ed a sia join irriducibile
         """
         irr_congruenze = []
         for e in self.index_join_irriducibili():
@@ -1375,7 +1439,7 @@ class Lattice(PoSet):
     
     def all_congruenze(self):
         """
-        Calcola tutte congruenze combinando quelle elementari (adesso combinando quelle join-irriducibili)
+        Calcola tutte congruenze combinando quelle join-irriducibili
         """
         # all_congruenze = self.congruenze_elementari()
         all_congruenze = self.congruenze_join_irriducibili()
@@ -1394,6 +1458,9 @@ class Lattice(PoSet):
         return all_congruenze
 
     def CongruenceLattice(self, labels = False):
+        """
+        genera il reticolo delle congruenze
+        """
         a = self.all_congruenze()
         if not labels:
             return Lattice.from_function(a,confronta_blocchi,labels = [str(numero_blocchi(c)) for c in a])
@@ -1403,7 +1470,7 @@ class Lattice(PoSet):
     #### Hasse
     def show_irriducible(self):
         """
-        Mostra tutti gli elementi join irriducibili
+        Mostra tutti gli elementi join - meet irriducibili
         """
         J_ = self.index_join_irriducibili()
         M_ = self.index_meet_irriducibili()
@@ -1414,6 +1481,9 @@ class Lattice(PoSet):
     def dinamic_congruences(self, shape : tuple = (500,500), grid: tuple = None, 
                                  show_labels : bool = False, title = 'PoSet', init = True, 
                                  ConL = None):    
+        """
+        Modalità in cui vengono mostrati sia ConL che L in maniera iterattiva
+        """
         if not ConL:
             ConL = self.CongruenceLattice()
         
@@ -1438,15 +1508,6 @@ class Lattice(PoSet):
             
         return Lattice.from_function(PowerSet,lambda a,b: a <= b)
     
-    def from_diamond(a,b=None):
-        """
-        Il diamond altro non è che un caso specifico del Component Wise, sarà presto deprecato
-        """
-        if not b:
-            b = a
-        dati = [(i,j) for i in range(a) for j in range(b)]
-        return  Lattice.from_function(dati,lambda b,n: b[0] <= n[0] and b[1]<=n[1])
-    
     def from_chain(n):
         """
         Catene
@@ -1462,6 +1523,10 @@ class Lattice(PoSet):
 
 class CW(Lattice):
     def __init__(self, *cw):
+        """
+        Classe apposita per prodotti di catene: C_1 x C_2 x ... x C_n
+        quando vorrò potrò aggiungere ulteriori funzioni
+        """
         self.cw = cw
         self.obj = genera_cw(cw)
         self.domination_matrix = np.eye(len(self.obj))
@@ -1474,6 +1539,9 @@ class CW(Lattice):
         self.cover_matrix = self.domination_matrix - np.eye(len(self.domination_matrix)) - np.where((self.domination_matrix - np.eye(len(self.domination_matrix))) @ (self.domination_matrix - np.eye(len(self.domination_matrix))) > 0,1,0)
 
     def congruenze_join_irriducibili(self):
+        """
+        Super efficente grazie alla teoria
+        """
         return join_irriducible_cw(*self.cw)
     
     
@@ -1528,10 +1596,16 @@ class Finestra():
         self.root.mainloop()
        
     def show_labels_true(self,event):
+        """
+        modifica impostazioni etichette: visibili - non visibili
+        """
         self.show_labels = not self.show_labels
         self.disegna()   
         
     def show_labels_poset(self, event):
+        """
+        mostra le etichette di un solo poset (impostazioni globalmente migliorabile)
+        """
         hasse_index,punto = self.identifica_punto(event.x, event.y)
         row = hasse_index // self.grid[1]
         col = hasse_index % self.grid[1]
@@ -1543,6 +1617,9 @@ class Finestra():
                         font=f"Times {self.hasses[hasse_index].font_size}", text=self.hasses[hasse_index].labels[i], fill = 'black')
             
     def dedekind(self, event):
+        """
+        calcola il completamento di un PoSet
+        """
         hasse_index,punto = self.identifica_punto(event.x, event.y)
         A = Lattice.from_fca(self.hasses[hasse_index].obj,self.hasses[hasse_index].obj,self.hasses[hasse_index].domination_matrix)
         A.get_hasse_variables()
@@ -1553,6 +1630,9 @@ class Finestra():
         self.disegna()
                
     def resize(self, event):
+        """
+        resize
+        """
         self.shape = (event.width,event.height)
         #self.root.geometry(str(self.shape[0])+'x'+str(self.shape[1]))
         self.W = self.shape[0] / self.grid[1]
@@ -1561,6 +1641,9 @@ class Finestra():
         self.disegna()
             
     def disegna(self):
+        """
+        main, penso sia chiaro
+        """
         self.canvas.delete("all")
         for i,H in enumerate(self.hasses):
             row = i // self.grid[1]
@@ -1594,7 +1677,7 @@ class Finestra():
                                             font=f"Times {H.font_size}", text=H.labels[i])
                      
     def gestisci_movimento_mouse(self, evento):
-        """Funzione per gestire il movimento del mouse"""
+        """Funzione per muovere i pallini"""
         # Individua punto nella griglia e conseguentemenete Hasse di riferimento
         row = int(evento.y  // self.H)
         col = int(evento.x  // self.W)
@@ -1627,6 +1710,7 @@ class Finestra():
         self.selected_circle = None
    
     def show_con(self, evento):
+        """evidenzia una congruenza quando viene indicata in Con L """
         row = int(evento.y  // self.H)
         col = int(evento.x  // self.W)
         hasse_index = row*self.grid[1] + col
@@ -1653,6 +1737,7 @@ class Finestra():
             self.disegna()
  
     def show_all_irriducible(self, skip):
+        """clear """
         for h in self.hasses:
             try:
                 h.show_irriducible()
@@ -1661,6 +1746,9 @@ class Finestra():
         self.disegna()
         
     def reset(self, skip):
+        """
+        reset
+        """
         for h in self.hasses:
             h.get_hasse_variables()
         self.disegna()
@@ -1689,6 +1777,9 @@ class Finestra():
         return hasse_index, None
 
     def applica_con(self, evento):
+        """
+        Applica una congruenza e aggiorna i diagrammi di Hasse.
+        """
         hasse_index,punto = self.identifica_punto(evento.x, evento.y)
 
         L = self.hasses[0].apply_congruence(self.hasses[hasse_index][punto])
@@ -1712,6 +1803,9 @@ class Finestra():
         self.disegna()
     
     def side_show_contest(self,evento):
+        """
+        Genera a lato un sotto poset del poset selezionato. ovvero l'unione dell'upset e del downset di un punto
+        """
         hasse,punto = self.identifica_punto(evento.x,evento.y)
         A = self.hasses[hasse].sub_poset(self.hasses[hasse].downset(punto) | self.hasses[hasse].upset(punto))
         A.get_hasse_variables()
@@ -1726,6 +1820,10 @@ class Finestra():
         self.last_label_temp(None)
         
     def side_show_contest_fca(self,evento):
+        """
+        Genera a lato un sotto poset del poset selezionato. ovvero l'unione dell'upset e del downset di un punto
+        Però converte in reticolo
+        """
         hasse,punto = self.identifica_punto(evento.x,evento.y)
         self.hasses[hasse].show_nodes((punto,),'lightgreen')
         T = self.hasses[hasse].sub_poset(self.hasses[hasse].downset(punto) | self.hasses[hasse].upset(punto))
@@ -1741,6 +1839,9 @@ class Finestra():
         self.last_label_temp(None)
         
     def side_dinamic_con(self,evento):
+        """
+        Genera a lato Con L ed entra in modalità dinamica
+        """
         hasse,punto = self.identifica_punto(evento.x,evento.y)
         self.canvas.bind('<Motion>',self.show_con)
         self.root.bind('<Button-2>', self.applica_con)
@@ -1762,6 +1863,9 @@ class Finestra():
                         font=f"Times {self.hasses[hasse].font_size}", text=self.hasses[hasse].labels[i], fill = 'black')
         
     def last_label_temp(self,evento):
+        """
+        genera la label temporanee per poset appena creati
+        """
         row = 0
         col = 1
         for i,(fx,fy) in enumerate(self.hasses[-1].nodes):
@@ -1771,7 +1875,6 @@ class Finestra():
                         Y +  self.hasses[-1].r*2 + self.hasses[-1].font_size/2 ,
                         font=f"Times {self.hasses[-1].font_size}", text=self.hasses[-1].labels[i], fill = 'black')
                
-        
     def save(self,evento):
         """
         Salva il contenuto del canvas come immagine PNG.
@@ -1805,7 +1908,6 @@ class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
         """
         Un dataset è un reticolo ma con associata una distribuzione di frequenza per ogni punto.
-
         """
         assert len(freq) == len(Lat)
         self.L = Lat
@@ -1847,6 +1949,10 @@ class DataSet():
         
     # funzioni di fuzzy dominanza
     def BrueggemannLerche(self):
+        """
+        Povero Soresen, lo abbandonato. Comunque fuzzy dominance calcolata con bls. 
+        
+        """
         fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
         for i in range(len(self.L)):
             for j in range(i+1,len(self.L)):
@@ -1869,7 +1975,11 @@ class DataSet():
                     fuz_dom[i][j] = d_ij
                     fuz_dom[j][i] = 1 - d_ij
         return fuz_dom
+    
     def mutual_ranking_probability(self):
+        """
+        MRP fuzzy dominance
+        """
         n = 0
         matrice = np.array([[0 for i in range(len(self.L))] for j in range(len(self.L))])
         for est in self.L.get_all_linear_ex():
@@ -1885,7 +1995,7 @@ class DataSet():
     ## Costruire matrice di separation come 1 + \sum inb_{ikj}
     def in_beetwen(self, a,k,b):
         """
-        Calcola la in_beetwen a < k < b
+        Calcola la in_beetweness a < k < b
         """
         return self.t_conorm_func(
             self.t_norm_func(self.t_norm_func(self.fuz_dom[a][b],self.fuz_dom[a][k]),self.fuz_dom[k][b]),
@@ -1895,7 +2005,8 @@ class DataSet():
     def compute_separation(self):
         """
         Calcola la separation nel dataset, per ora è ottimizzata ma 
-        In teoria sò già che sep_{ii} = 0, e che sep_{ij} = 1 - sep_{ji}
+        In teoria sò già che sep_{ii} = 0, e che sep_{ij} = sep_{ji}
+        Potrei inserire la fuzzy dominance come parametro invece di 1
         """
         separation = [[0 for i in range(len(self.L))] for j in range(len(self.L))]
         for i in range(len(self.L)):
@@ -1905,17 +2016,6 @@ class DataSet():
                     sep += self.in_beetwen(i,k,j)
                 separation[i][j] = sep
                 separation[j][i] = sep
-        if False:
-            # Quella che segue è la versione di separation senza nessuna ottimizzazione teorica, ovvero:
-            # - non assumo a priori che sep_ii = 0
-            # - non assumo a priori che sep_ij = sep_ji
-            # può essere molto utile per verificare che le funzioni che utilizzo rispettino certe premesse
-            for i in range(len(self.L)):
-                for j in range(len(self.L)):
-                    sep = self.fuz_dom[i][j] + self.fuz_dom[j][i]
-                    for k in range(len(self.L)):
-                        sep += self.in_beetwen(i,k,j)
-                    separation[i][j] = sep
         return separation
     
     def as_partition(con):
@@ -1948,6 +2048,7 @@ class DataSet():
         return tot_sep
     
     def max_separation(self,partition):
+        "radius heterogenyt func"
         tot_sep = 0
         for gruppo in partition:
             sep_max = 0
@@ -1967,13 +2068,14 @@ class DataSet():
             print(*[f"{r:.{decimal}f}" for r in riga],sep = ' , ')
         
     def __len__(self):
-        return len(self.L)
+        return sum(self.f)
     
     def __getitem__(self,index):
         return self.L[index]
 
     def gerarchic_cluster(self, function_sep = "total_separation", irriducible_congru = None):
         """
+        RINOMINALA TI PREGO
         Calcoliamo una cluster gerarchica, questo comando restituisce due liste:
         - La prima è la lista di congruenze risultanti dalla cluster gerarchica
         - La seoncda è la lista di separation assocciata ad ogni congruenza
@@ -2017,6 +2119,9 @@ class DataSet():
         return history_con, separations
 
     def classic_gerarchic_cluster(self,function_sep = "total_separation"):
+        """
+        just as test, this is the classic cluster
+        """
         if function_sep == "total_separation":
             function_sep = lambda par: self.total_separation(par)
             
@@ -2049,6 +2154,10 @@ class DataSet():
         return history_con,separations
         
     def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation", labels_freq = True, font_size = None):
+        """
+        Genera una rappresentazione molto estetica del percorso nel reticolo delle congruenze.
+        Fattiblie se il dataset è piccolo
+        """
         if function_sep != "total_separation":
             raise ValueError("Non l'ho ancora implementato coglione")
         
@@ -2109,6 +2218,9 @@ class DataSet():
                        t_norm_function=t_norm_function,t_conorm_function=t_conorm_function)
                             
 def index_wrapper(self,*lista, from_index = False, to_index = False, func):
+    """
+    just testing, non serve a niete
+    """
     if from_index and to_index:
         return self.func(*lista)
 
@@ -2169,13 +2281,7 @@ class CWDataSet(DataSet):
         
     def BrueggemannLerche(self):
         """
-        Calculates the Brueggemann-Lerche fuzzy dominance matrix for the lattice.
-        Returns:
-            list: A 2D list representing the fuzzy dominance matrix. Each element
-            in the matrix represents the degree of dominance between two elements
-            in the lattice. A value of 1 indicates strict dominance, a value of 0
-            indicates no dominance, and values between 0 and 1 represent fuzzy
-            dominance.
+        Formula operativa ricavata da me. per reticoli CW
         """
         # Function implementation goes here
         pass
@@ -2215,7 +2321,7 @@ class CWDataSet(DataSet):
     
     def LLEs(self):
         """
-        Solo per reticoli CW, infatti dovrei spostarlo
+        Solo per reticoli CW, fuzzy dominance calcolata come MRP sulla permutazione delle variabili
         """
         fuz_dom = [[0 for i in range(len(self.L))] for j in range(len(self.L))] ###Strict dom (poi magari ne discutiamo)
         k = len(self.L[0])
@@ -2256,56 +2362,38 @@ class CWDataSet(DataSet):
    
 """
 SFIDE FUTURE
- 1. [ ] Uniformare tutte le funzioni. probabilmente si può fare in maniera intelligente con i wrapper, quello che è importante però è questo:
-    - Non devo avere funzioni diverse per fare le cose in base all'indice o all'oggetto. Devonono solo essere parametri
- 5. [ ] Migliorare l'aspetto grafico:
-    Non devo avere funzioni complesse ed illegibili, dovrei poter fare questa cosa
+ 1. [ ] Cambiare i nomi di molte funzioni e variabili. Molte fanno schifo, sono controintuitive, manca di consistenza, ed alcune addirittura grammaticalmente sbagliate 
+    - [ ] ad esempio, a parte "from_function", tutti i "from" possono scomparire. Lattice.chain(), Lattice.powerset() etc sono molto più chiari
+ 2. [ ] Capire come automatizzare il processo di segeuire le funzioni su indici o elementi, probabilmente si può fare in maniera intelligente con i wrapper.
+ 3. [ ] Interazione tra reticoli e poset: voglio gestire in qualche maniera, che non so ancora, diversi poset sugli stessi elementi. Oppure diversi poset che hanno alcuni elementi in comune. Così come dall'insieme di estensioni lineari di un poset posso generare  l'originale mantenendo solo quelle comuni (this should be easy for example):
+    - [ ] Due poset con le stesse dimensioni, supponendo che abbiano gli stessi elementi, ordinati uguali. Possono essere intersecati "&" e vengono mantenute solo le dominanze comuni.
+ 4. [ ] Migliorare l'aspetto grafico:
     - [ ] Una cazzo di griglia costumizzabile dai... L'equivalente di subplots in matplot lib per multigrafici
-    - [x_] Funzioni per evidenziare un insieme di punti o edge:
-        Non devo avere la funzione apposta per evidenziare una congruenze, semplicemente devo calcolare 
-        gli edge che la riguardano e passarli ad una funzione del tipo _evidenzia_edges(edges, color =(255,0,0), weight = 3_ 
-        
-        Analogalmente con i punti.
-        
-        Questo renderebbe incredibilmente semplice, elegante e divertente giocare con subset, elementi join-dense, catene etc. etc.
+        - [ ] Poter dare solo righe
+        - [ ] Poter dare solo colonne
+        - [ ] Poter specificare entrambi in maniera sensata
+        - [ ] Poter dare entrambi con relative proporzioni 
+    - [ ] Creare un unica funzione per aggiungere poset e reticoli alla griglia!
+5. [ ] Improvment generici per GUI, in ottica di crearmi il plugin per obsidian prima o poi (sostanzialmente non male comunque):
 
-    - [ ]Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset
+    - [ ] Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset
         Riordinare i punti in maniera tale di avere meno sovrapposizioni possibili e edges più corti possibili
-        
-    - [X] Upgradare l'algoritmo. So che c'è una mappa per gli elementi join-irriducibili in L to gli elementi join irriducibibli in ConL
-        Devo eseguire i seguenti due step ma dopo credo (cioè è ovvio) sia più conveniente passare a questo metodo:
-        - Accertarmi che la mia tecnica per trovare gli elementi join irriducibili sia corretta
-        - Identificare gli step per ottenere ConL dai suoi elementi join irriducibili.
-            Ovvero, esiste un modo migliore che prendere tutti i suoi possibili sottoinsiemi?
-            L'algoritmo che ho studiato ora funziona
-            
-6. [x] Implementare Dedekind Completetion
-    - [ ]  impmlementarlo stepwise invece che stupi one...
+    - [ ] Creare due "modalità": intersezione - unione per selezionare i punti
     
-7. definire altre operazioni tra PoSet e Lattices.
+    - [ ] Creare una rappresentazione apposita ed adatta alle FCA.
+    - [ ] Labels più chiare, più intuitive, più costumizzabili (posizione, dimensioni, interattivament nella gui etc.)
+    
+6. [ ] FCA: funzinoa tutto ma:
+    - [ ] Studiare algoritmi efficienti
+    - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente
+            
+7. [ ] Implementare Dedekind Completetion
+    - [ ]  impmlementarlo stepwise invece che a cazzo di cane one...
+    
+8. [ ] Definire altre operazioni tra PoSet e Lattices.
     - [ ] PoSet: glued sum verificando che abbiano massimo e minimo
-    - [ ] test di verifica di isomorfismi ed omomorfismi (sarebbe carino sfruttare funzioni built in come __is__) 
+    - [ ] test di verifica di isomorfismi ed omomorfismi (sarebbe carino sfruttare funzioni built in come "==") 
     - [ ] Potrebbe essere carino (ma non particolarmente essenziale) definire __floordiv__ per calcolare Reticoli quoziente: L // theta = ...
     
-8. ottimizzare cluster:
-    - Una volta dimostrato che ConL è colo l'insieme di possibili gap da rimuovere posso calcolare con L con molta più semplicità
-Problema teorico:
-Sò che |C_4 X C_3| = 12. ed in generale che il reticolo CW ottenuto come 
-prodotto di n catene di elementi k_1, k_2, ..., k_n  = k_1 * k_2 ... k_n
-
-Quanto è invece |ConL(C_4 X C_3)|  ed in generale |ConL(\Pi_{i=o}^n C_{k_i})| ?
-Segue direttamente da: a cosa è siomorfo ConL(C_4 X C_3)?
-C'è un legame tra ConL(C_4 X C_3) e ConL(C_4) X ConL(C_3)... spoiler sono uguali, ma va dimostrato
-A questo punto diventa tutto più semplice (credo) 
-
-S_n x S_m = S_{n*m}
-
-Dato che ConL(C_n) == S_n
-|ConL(C_n)| = |S_n| = 2**n
-
-|ConL(C_n) x ConL(C_n)| = |S_n| = 2**n
-
-Devo lavorare solo ad un interfaccia grafica!
-In maniera intelligente, su un file nuovo, una nuova classe
-
+9. [ ] Pensare ad animazioni, e roba del genere? In un'altra vita forse
 """

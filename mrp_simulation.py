@@ -4,7 +4,20 @@ import random as r
 import copy
 from fractions import Fraction
 
-L = pl.Lattice.from_cw(3,3)
+D = pl.CWDataSet((3,3,3),[r.randint(0,10) for i in range(27)])
+cons, j = D.gerarchic_cluster()
+D.estetic_rappresentation(labels_freq = False, font_size = 20)
+temp = [pl.Lattice.from_cw(3,3,3) for x in cons]
+for t,x in zip(temp,cons):
+    t.get_hasse_variables()
+    t.show_congruence(x)
+temp2 = [t.apply_congruence(x) for x in cons]
+for t in temp2:
+    t.get_hasse_variables()
+    
+pl.Lattice.hasse(*(temp+temp2), grid = (2,len(temp)), init = False, radius = 4)
+
+L = pl.Lattice.from_cw(2,2,3)
 exs = L.get_all_linear_ex()
 den = len(exs)
 for i,x in enumerate(L):
