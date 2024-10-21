@@ -1570,7 +1570,9 @@ class Finestra():
         self.root = tk.Tk()
         self.root.geometry(str(shape[0])+'x'+str(shape[1]))
         self.root.title(title)
-        self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')
+        r,g,b = (239,237,228)
+        self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg = f'#{r:02x}{g:02x}{b:02x}') # temp x presentazione
+                               # bg='white')
         self.canvas.pack(fill=tk.BOTH, expand=True)
         self.disegna()
         self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
@@ -1672,7 +1674,7 @@ class Finestra():
                 
             # Aggiungi etichette
                 if self.show_labels:
-                    self.canvas.create_text(X + H.r*1.5,
+                    self.canvas.create_text(X + H.r*2,
                                             Y +  H.r*2 + H.font_size/2 ,
                                             font=f"Times {H.font_size}", text=H.labels[i])
                      
@@ -2170,12 +2172,15 @@ class DataSet():
             Con_L.labels = [round(self.total_separation(DataSet.as_partition(con)),2) for con in Con_L]
 
         self.L.get_hasse_variables()
+        self.L.font_size = 30
+        Con_L.font_size = 22
         if labels_freq:
             self.L.labels = [str(_f) for _f in self.f]
         if font_size:
             self.L.font_size = font_size
             Con_L.font_size = font_size
         # Con_L.hasse(init = False, show_labels=True)
+        Con_L.hasse(show_labels=True, init = False)
         self.L.dinamic_congruences(ConL = Con_L,init = False, shape = (1400,700), show_labels=True)
         
     def get_dataset(self,clusters,fuzzy_domination_function = "BrueggemannLerche", t_norm_function = "prod", t_conorm_function = None):
@@ -2385,10 +2390,11 @@ SFIDE FUTURE
     
 6. [ ] FCA: funzinoa tutto ma:
     - [ ] Studiare algoritmi efficienti
-    - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente
+    - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente. In fondo basta cambiare get_hasse_variables()
             
-7. [ ] Implementare Dedekind Completetion
-    - [ ]  impmlementarlo stepwise invece che a cazzo di cane one...
+7. [ ] Improvment tecnici
+    - [ ] Implementare Dedekind Completetion serio, non FCA
+    - [ ] Ottimizzare congruenze partendo a calcolarle dai meet-irriducibili quando sono meno dei join-irriducibili
     
 8. [ ] Definire altre operazioni tra PoSet e Lattices.
     - [ ] PoSet: glued sum verificando che abbiano massimo e minimo

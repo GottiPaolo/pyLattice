@@ -1,16 +1,10 @@
 # pyLattice
 
-pyLattice is a python library to menage Lattice and PoSet.
+pyLattice is a python library to menage Lattices and PoSets.
 I'm a statiscs student, so maybe this not the best program you can see, but it works. 
 
 
-## Structure
-- Congruences stuff!
-    - Congruence structure
-    - Calculate a Con(a,b)
-    - Calculate join_irriducible Con
-    - Calculate ConL
-    - "dinamic con"
+
 
 ## PoSet
 A PoSet object has just four different attributes:
@@ -124,3 +118,42 @@ $\theta = [c_0,c_1,\dots,c_n]$ where $c_i = c_j \leftrightarrow x_i\equiv x_j $
 - you can rappresent a congruence with `L.show_congruence(congruence)`
 
 ![img](https://github.com/GottiPaolo/pyLattice/blob/main/img/all_congruence_cube.png)
+
+
+
+
+
+# Bozza nuovo readme:
+## Indice
+- [Introduzione](#introduzione)
+- PoSet
+
+## Introduzione
+Cosa sono i poset, cosa fa la libreria, etc.
+
+## Poset
+### Creare un PoSet
+- Matrice di dominanza, oggetti, labels
+    - Matrice di dominanza unica cosa essenziale.
+- Funzioni di base:
+    - Oggetti e funzioni
+
+- Operazioni tra PoSet
+
+### Proprietà Del Poset
+- Oltre ad avere matrice di dominanza ha di base anche quella di copertura
+
+
+### Operazioni su un PoSet
+- scorriti tutte le funzioni, spiegale bene: limiti / vantaggi e svantaggi
+- Hasse diagram!
+
+
+## Reticoli
+
+### Differenze dai poset
+- funzioni tutte uguali tranne: ...
+
+### Congruenze
+- Grande differenza dai poset, segue pippone sulle congruenze
+
