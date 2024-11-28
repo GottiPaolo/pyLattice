@@ -264,7 +264,6 @@ def primes_i(cols,matrix):
     """data una matrice di relazione binaria ed un sottoinsieme di colonne restitusice l'insieme di righe comuni in tutte le colonne"""
     return {row for row in range(len(matrix)) if all(matrix[row][col] == 1 for col in cols)}
 
-
 def fca(relation_matrix):
     """Calcola i concetti formali di una matrice di relazione binaria partendo dal fatto che quelli generati dai singoli elementi 
     sono meet dense o join dense. Si può implementare sicuramente studiando """
@@ -1402,9 +1401,6 @@ class Lattice(PoSet):
                             if blocchi[meet_i] != blocchi[meet_j]:
                                 blocchi = unisci(meet_i,meet_j,blocchi)
                                 cambiamenti = True
-        # self.blocchi = blocchi Può sembrare comoda questa cosa ma mi porta ad un problema:
-        # questa funzione la utilizzo OGNI VOLTA che creo ConL, e se lascio questa parte finisce che OGNI VOLTA viene rappresentata una
-        # congruenza anche se non voluta
         return blocchi
     
     def congruenze_elementari(self):
@@ -1426,7 +1422,8 @@ class Lattice(PoSet):
     def congruenze_join_irriducibili(self):
         """
         Calcola le congruenze join irriducibili cioè quelle che uniscono i blocchi a e b, 
-        tali che a \prec b ed a sia join irriducibile
+        tali che a \prec b ed a sia join irriducibile 
+        per info vedi Lemma 1) nel paper COMPUTING CONGRUENCE LATTICES OF FINITE LATTICES RALPH FREESE
         """
         irr_congruenze = []
         for e in self.index_join_irriducibili():
@@ -2369,9 +2366,10 @@ class CWDataSet(DataSet):
 SFIDE FUTURE
  1. [ ] Cambiare i nomi di molte funzioni e variabili. Molte fanno schifo, sono controintuitive, manca di consistenza, ed alcune addirittura grammaticalmente sbagliate 
     - [ ] ad esempio, a parte "from_function", tutti i "from" possono scomparire. Lattice.chain(), Lattice.powerset() etc sono molto più chiari
- 2. [ ] Capire come automatizzare il processo di segeuire le funzioni su indici o elementi, probabilmente si può fare in maniera intelligente con i wrapper.
+ 2. [ ] Capire come automatizzare il processo di eseguire le funzioni su indici o elementi, probabilmente si può fare in maniera intelligente con i wrapper.
  3. [ ] Interazione tra reticoli e poset: voglio gestire in qualche maniera, che non so ancora, diversi poset sugli stessi elementi. Oppure diversi poset che hanno alcuni elementi in comune. Così come dall'insieme di estensioni lineari di un poset posso generare  l'originale mantenendo solo quelle comuni (this should be easy for example):
     - [ ] Due poset con le stesse dimensioni, supponendo che abbiano gli stessi elementi, ordinati uguali. Possono essere intersecati "&" e vengono mantenute solo le dominanze comuni.
+    - [ ] Scomposizione di un poset
  4. [ ] Migliorare l'aspetto grafico:
     - [ ] Una cazzo di griglia costumizzabile dai... L'equivalente di subplots in matplot lib per multigrafici
         - [ ] Poter dare solo righe
@@ -2379,18 +2377,18 @@ SFIDE FUTURE
         - [ ] Poter specificare entrambi in maniera sensata
         - [ ] Poter dare entrambi con relative proporzioni 
     - [ ] Creare un unica funzione per aggiungere poset e reticoli alla griglia!
-5. [ ] Improvment generici per GUI, in ottica di crearmi il plugin per obsidian prima o poi (sostanzialmente non male comunque):
+    - [ ] Devo entrare nell'ottica di avere un oggetto del tipo "figura" autonomo. Posso generarlo quando creo L.hasse() oppure crearlo e poi inserigli i reticoli
 
+5. [ ] Improvment generici per GUI, in ottica di crearmi il plugin per obsidian prima o poi (sostanzialmente non male comunque):
     - [ ] Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset
-        Riordinare i punti in maniera tale di avere meno sovrapposizioni possibili e edges più corti possibili
+        Riordinare i punti in maniera tale di avere meno sovrapposizioni possibili, qualcosa di ricorsivo, leggiti articoli online pirla
     - [ ] Creare due "modalità": intersezione - unione per selezionare i punti
-    
     - [ ] Creare una rappresentazione apposita ed adatta alle FCA.
     - [ ] Labels più chiare, più intuitive, più costumizzabili (posizione, dimensioni, interattivament nella gui etc.)
     
 6. [ ] FCA: funzinoa tutto ma:
     - [ ] Studiare algoritmi efficienti
-    - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente. In fondo basta cambiare get_hasse_variables()
+    - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente. In fondo basta cambiare get_hasse_variables()ª
             
 7. [ ] Improvment tecnici
     - [ ] Implementare Dedekind Completetion serio, non FCA
