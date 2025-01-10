@@ -53,7 +53,7 @@ def get_righe(cover_matrix):
     Data una matrice di copertura ottiene una lista che alla cella i-esima contiene la riga
     in cui un punto si posiziona nel diagramma di hasse del PoSet.
     La riga si ottiene grazie ad una funzione d'appogio e si basa sulla formula:
-    a.riga = max{b.riga |a\prec b} se \exits b: a\prec b; 0 altrimenti.
+    a.riga = max{b.riga |aprec b} se exits b: aprec b; 0 altrimenti.
     """
     righe = [None for i in range(len(cover_matrix))]
     for j in range(len(cover_matrix)):
@@ -171,7 +171,7 @@ def mappa(x,old_min,old_max,new_min,new_max):
         
 #### Congruence Function
 """
-Pormemoria: una congruenza su un reticolo L di n elementi è rappresentata da una lista "con" di n numeri dove con[i] == con[j] -> L[i] \equiv L[j]
+Pormemoria: una congruenza su un reticolo L di n elementi è rappresentata da una lista "con" di n numeri dove con[i] == con[j] -> L[i] equiv L[j]
 Inoltre il numero presente nella lista coincide con l'indice dell'elemento minore in quella congruenza.
 
 con = [1,1,3,3] NON è una congruenza, l'elemento "0" non può avere indice "1". 
@@ -854,7 +854,7 @@ class PoSet:
         """
         Somma definita da 
         L + W = Q : Q.obj = L.obj + W.obj 
-        Q.i <_q Q.j  <==>  (Q.i \in W and Q.j \in W) or (Q.i <_l Q.j) or (Q.i <_w Q.j) 
+        Q.i <_q Q.j  <==>  (Q.i in W and Q.j in W) or (Q.i <_l Q.j) or (Q.i <_w Q.j) 
         """
         matrice = np.eye(len(self)+len(other))
         for i in range(len(self)+len(other)):
@@ -995,7 +995,7 @@ class PoSet:
         Solo un inizio per capire, fa computazionalmente schifo
         
         Implementanto in versione stupida O(2**n)
-        per ogni A \subset P, ovver per ogni A \in Poweset(P)
+        per ogni A subset P, ovver per ogni A in Poweset(P)
         calcoliamo A^u^l e poi ordiniamo i risultati per inclusione
         Dovrò capire la versione step wise
         
@@ -1295,8 +1295,8 @@ class Lattice(PoSet):
             
         for i,a in enumerate(labels_o):
             labels[L.obj.index(a)][1].append(oggetti[i])
-        labels = ['\n\n'+' '.join([str(a).upper() for a in l[0]]) + '\n\n' + ' '.join([str(_) for _ in l[1]])for l in labels]
-                            
+        labels =  ['\n\n'+' '.join([str(a).upper() for a in l[0]]) + '\n\n' + ' '.join([str(_) for _ in l[1]])for l in labels]
+                         
         L.labels = labels
         return L
     
@@ -1332,9 +1332,9 @@ class Lattice(PoSet):
         return PoSet(d,[self.obj[i] for i in range(len(self)) if i!= top], [self.labels[i] for i in range(len(self)) if i!= top] ) + other
         
     #### Congruence Staff
-    def apply_congruence(self,congruence):
+    def apply_congruence_old(self,congruence):
         """
-        Lemma 6.12 (i) $X \le Y \Longleftrightarrow \exists a \in X,b\in Y: a\le b$
+        Lemma 6.12 (i) $X le Y Longleftrightarrow exists a in X,bin Y: ale b$
         """
         blocks = {}
         for i,a in enumerate(congruence):
@@ -1344,8 +1344,12 @@ class Lattice(PoSet):
             else:
                 blocks[a].append(i)
         
-        print(blocks.values())
-        labels = list(map(lambda x:' '.join(map(lambda c:str(self.labels[c]),x)),blocks.values()))
+        #print(blocks.values())
+        if hasattr(self, 'labels'):
+            labels = list(map(lambda x:' '.join(map(lambda c:str(self.labels[c]),x)),blocks.values()))
+        else:
+            self.labels = [str(x) for x in self.obj]
+            labels = list(map(lambda x:' '.join(map(lambda c:str(self.labels[c]),x)),blocks.values()))
         #labels = list(map(lambda x:' '.join(map(lambda c:str(self.obj[c]),x)),blocks.values())) #obj o labels ? 
         matrix = np.eye(len(blocks))
         
@@ -1358,6 +1362,29 @@ class Lattice(PoSet):
                         elif self.domination_matrix[b][a]:
                             matrix[j+i+1][i] = 1
 
+        return Lattice(matrix,X = labels)
+    
+    def apply_congruence(self,congruence):
+        """
+        aggiorniamo questa funzione per renderla più coerente con tutto il lavoro fatto e rendere più semplice lo studio del raggio per la rappresentazione
+        Lemma 6.12 (i) $X le Y Longleftrightarrow exists a in X,bin Y: ale b$
+        """
+        data = [v for i,v in enumerate(congruence) if  i == v]
+        matrix = np.eye(len(data))
+        for i,a in enumerate(congruence):
+            for j_,b in enumerate(congruence[i+1:]):
+                j = j_ + i + 1 
+                if self.domination_matrix[i][j]:
+                    matrix[data.index(a)][data.index(b)] = 1
+                elif self.domination_matrix[j][i]:
+                    matrix[data.index(b)][data.index(a)] = 1
+        
+        if hasattr(self, 'labels'):
+            labels = [' '.join([str(self.labels[i]) for i,c in enumerate(congruence) if c == v ]) for v in data]
+        else:
+            self.labels = [str(x) for x in self.obj]
+            labels = [' '.join([str(self.labels[i]) for i,c in enumerate(congruence) if c == v ]) for v in data]
+        
         return Lattice(matrix,X = labels)
   
     def calcola_congruenza(self,a,b):
@@ -1407,7 +1434,7 @@ class Lattice(PoSet):
         """UFFICIALMENTE DEPRECATO --> calcolo direttamente quelle join irriducibili
         Deprecato perchè ho ristretto ancora l'insieme delle congruenze necessarie alle congruenze join_irriducibili!
         (non grazie a me, ahimé ma grazie a questo paper: COMPUTING CONGRUENCE LATTICES OF FINITE LATTICES RALPH FREESE)
-        Calcola le congruenze che ho definito _elementari_ cioè quelle che uniscono i blocchi a e b, tali che a \prec b
+        Calcola le congruenze che ho definito _elementari_ cioè quelle che uniscono i blocchi a e b, tali che a prec b
         
         """
         elementar_congruenze = [] #NON INSERISCO L'identità: list(range(len(self))) potrei farlo ma allunga il calcolo di all
@@ -1422,8 +1449,12 @@ class Lattice(PoSet):
     def congruenze_join_irriducibili(self):
         """
         Calcola le congruenze join irriducibili cioè quelle che uniscono i blocchi a e b, 
-        tali che a \prec b ed a sia join irriducibile 
+        tali che a prec b ed a sia join irriducibile 
         per info vedi Lemma 1) nel paper COMPUTING CONGRUENCE LATTICES OF FINITE LATTICES RALPH FREESE
+        
+        NB per reticoli generati da prodotti di catene esiste la classe apposta CW 
+        dove questa funzione è ottimizzata sulla base delle conoscenze teoriche: 
+        si veda George Gratzer. The Congruences of a Finite Lattice p. 54 theorem 2.1
         """
         irr_congruenze = []
         for e in self.index_join_irriducibili():
@@ -1567,9 +1598,9 @@ class Finestra():
         self.root = tk.Tk()
         self.root.geometry(str(shape[0])+'x'+str(shape[1]))
         self.root.title(title)
-        r,g,b = (239,237,228)
-        self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg = f'#{r:02x}{g:02x}{b:02x}') # temp x presentazione
-                               # bg='white')
+        # r,g,b = (239,237,228)
+        self.canvas = tk.Canvas(self.root, width=shape[0], height=shape[1], bg='white')#, bg = f'#{r:02x}{g:02x}{b:02x}') # temp x presentazione
+                               # )
         self.canvas.pack(fill=tk.BOTH, expand=True)
         self.disegna()
         self.canvas.bind("<B1-Motion>", self.gestisci_movimento_mouse)
@@ -1662,12 +1693,21 @@ class Finestra():
                         )
             
             # Disegna cerchi
-            for i,(fx,fy) in enumerate(H.nodes):
-                X = (col + fx) * self.W #X del cerchio
-                Y = (row +fy) * self.H #Y del cerchio
-                self.canvas.create_oval((X - H.r, Y - H.r),
-                                        (X + H.r, Y + H.r),
-                                        fill = H.nodes_color[i])
+            if hasattr(H,"radius"):
+                for (i,(fx,fy)),r in zip(enumerate(H.nodes),H.radius):
+                    X = (col + fx) * self.W #X del cerchio
+                    Y = (row +fy) * self.H #Y del cerchio
+                    self.canvas.create_oval((X - r, Y - r),
+                                            (X + r, Y + r),
+                                            fill = H.nodes_color[i])
+            else:
+                for i,(fx,fy) in enumerate(H.nodes):
+                    X = (col + fx) * self.W #X del cerchio
+                    Y = (row +fy) * self.H #Y del cerchio
+                    self.canvas.create_oval((X - H.r, Y - H.r),
+                                            (X + H.r, Y + H.r),
+                                            fill = H.nodes_color[i])
+            
                 
             # Aggiungi etichette
                 if self.show_labels:
@@ -1991,7 +2031,7 @@ class DataSet():
                         matrice[j][i]+=1
         return matrice/n - np.identity(len(self.L))
          
-    ## Costruire matrice di separation come 1 + \sum inb_{ikj}
+    ## Costruire matrice di separation come 1 + sum inb_{ikj}
     def in_beetwen(self, a,k,b):
         """
         Calcola la in_beetweness a < k < b
@@ -2020,7 +2060,7 @@ class DataSet():
     def as_partition(con):
         """
         converte una congruenza in una partizione, mi semplifica parecchio i calcoli:
-        una congruenza è una lista del tipo L[i] = k --> x_i \in k
+        una congruenza è una lista del tipo L[i] = k --> x_i in k
         una partizione è una lista di liste P[i] = [i,k]
         """
         diz_indici = {}
@@ -2037,7 +2077,7 @@ class DataSet():
     def total_separation(self,partition):
         """
         La separation totale di una partizione è definita come la somma delle separazioni internee ai gruppi, ovvero:
-        sep_g = \sum_{a,b\in G} sep(a,b) * f_a * f_b
+        sep_g = /sum_{a,b in G} sep(a,b) * f_a * f_b
         """
         tot_sep = 0
         for gruppo in partition:
@@ -2219,6 +2259,103 @@ class DataSet():
                        freq_,fuzzy_domination_function=fuzzy_domination_function,
                        t_norm_function=t_norm_function,t_conorm_function=t_conorm_function)
                             
+    def list_of_quotient(self, history_con = None, propotion = True, normalize_costant = 1):
+        if not history_con:
+            history_con, separations = self.gerarchic_cluster()
+        lattices = [self.L.apply_congruence(c) for c in history_con]
+        if propotion:
+            for c,L in zip(history_con, lattices):
+                """
+                Se ho fatto le  cose bene dovrebbe essere semplice
+                """
+                radius = []
+                data = []
+                for i,v in enumerate(c):
+                    if i == v:
+                        data.append(v)
+                        radius.append(self.f[i])
+                    else:
+                        radius[data.index(v)] += self.f[i]
+                L.radius = [r / normalize_costant for r in radius]
+        Lattice.hasse(*lattices, show_labels=False, shape=(2000,500))
+    
+    def list_of_quotient_and_con(self, history_con = None, propotion = True, normalize_costant = 1):
+        if not history_con:
+            history_con, separations = self.gerarchic_cluster()
+        congruences = [Lattice(self.L.domination_matrix) for c in history_con]
+        lattices = [self.L.apply_congruence(c) for c in history_con]
+        for c,L,Q in zip(history_con,congruences,lattices):
+            L.get_hasse_variables()
+            L.show_congruence(c)
+            Q.get_hasse_variables()
+        if propotion:
+            for index,(c,L) in enumerate(zip(history_con, lattices)):
+                """
+                Se ho fatto le  cose bene dovrebbe essere semplice
+                """
+                radius = []
+                data = []
+                for i,v in enumerate(c):
+                    if i == v:
+                        data.append(v)
+                        radius.append(self.f[i])
+                    else:
+                        radius[data.index(v)] += self.f[i]
+                L.radius = [r / normalize_costant for r in radius]
+                if index == 0:
+                    for Q in congruences:
+                        Q.radius = L.radius
+            
+        Lattice.hasse(*(lattices+congruences), show_labels=False,grid= (2,len(history_con)),init= False, shape=(2000,700))
+        
+ 
+    def list_of_quotient_relative_con(self, history_con = None, propotion = True, normalize_costant = 1):
+        """
+        L'idea è semplice: mostriamo la lista di reticoli quoziente evidenziando sopra di essi di volta in volta la congruenza che vienne effetuata
+        La parte complessa è tenere traccia di come evolvono le congruenze, ma penso che iterativamente diventi "facile"
+        FATTO DIO CANE
+        """
+        if not history_con:
+            history_con, separations = self.gerarchic_cluster()
+        realative_congruences = []
+        lattices = [self.L.apply_congruence(c) for c in history_con]
+        for i,con in enumerate(history_con[:-1]):
+            next_con = history_con[i+1]
+            diz_mins = {}
+            new_con = []
+            for j,v in enumerate(con):
+                if v == j:
+                    if next_con[j] != j:
+                        new_con.append(new_con[diz_mins[next_con[j]]])
+                    else:
+                        new_con.append(len(new_con))
+                        diz_mins[next_con[j]] = len(new_con) - 1
+            
+            realative_congruences.append(new_con)
+        realative_congruences.append([0])
+        for l,nc in zip(lattices,realative_congruences):
+            l.get_hasse_variables()
+            l.show_congruence(nc)
+            
+        if propotion:
+            for c,L in zip(history_con, lattices):
+                """
+                Se ho fatto le  cose bene dovrebbe essere semplice
+                """
+                radius = []
+                data = []
+                for i,v in enumerate(c):
+                    if i == v:
+                        data.append(v)
+                        radius.append(self.f[i])
+                    else:
+                        radius[data.index(v)] += self.f[i]
+                L.radius = [r / normalize_costant for r in radius]
+            
+        Lattice.hasse(*lattices,init=False,shape=(2000,500))
+            
+         
+        
 def index_wrapper(self,*lista, from_index = False, to_index = False, func):
     """
     just testing, non serve a niete
@@ -2400,4 +2537,8 @@ SFIDE FUTURE
     - [ ] Potrebbe essere carino (ma non particolarmente essenziale) definire __floordiv__ per calcolare Reticoli quoziente: L // theta = ...
     
 9. [ ] Pensare ad animazioni, e roba del genere? In un'altra vita forse
+
+10. [ ] Paolo, ma perchè non hai mai messo una funzione max e min semplicemente? 
+    All'interno di un poset ti restituiscono una lista di valori che può essere vuota, con un solo elemento o con più
+    in un reticolo sai invece che è ben definita
 """
