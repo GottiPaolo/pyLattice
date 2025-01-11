@@ -1675,9 +1675,9 @@ class Finestra():
         main, penso sia chiaro
         """
         self.canvas.delete("all")
-        for i,H in enumerate(self.hasses):
-            row = i // self.grid[1]
-            col = i % self.grid[1]
+        for poset_index,H in enumerate(self.hasses):
+            row = poset_index // self.grid[1]
+            col = poset_index % self.grid[1]
 
             # Disegna linee
             for i,(a,b) in enumerate(H.vertex):
@@ -1694,27 +1694,31 @@ class Finestra():
             
             # Disegna cerchi
             if hasattr(H,"radius"):
+                """Troverò una maniera più sensata prima o poi, questa è davvero stupida"""
                 for (i,(fx,fy)),r in zip(enumerate(H.nodes),H.radius):
                     X = (col + fx) * self.W #X del cerchio
                     Y = (row +fy) * self.H #Y del cerchio
                     self.canvas.create_oval((X - r, Y - r),
                                             (X + r, Y + r),
                                             fill = H.nodes_color[i])
+                                        # Aggiungi etichette
+                    if self.show_labels:
+                        self.canvas.create_text(X + H.r*2,
+                                                Y +  H.r*2 + H.font_size/2 ,
+                                                font=f"Times {H.font_size}", text=H.labels[i])
             else:
                 for i,(fx,fy) in enumerate(H.nodes):
                     X = (col + fx) * self.W #X del cerchio
                     Y = (row +fy) * self.H #Y del cerchio
                     self.canvas.create_oval((X - H.r, Y - H.r),
                                             (X + H.r, Y + H.r),
-                                            fill = H.nodes_color[i])
-            
-                
-            # Aggiungi etichette
-                if self.show_labels:
-                    self.canvas.create_text(X + H.r*2,
-                                            Y +  H.r*2 + H.font_size/2 ,
-                                            font=f"Times {H.font_size}", text=H.labels[i])
-                     
+                                            fill = H.nodes_color[i])    
+                    # Aggiungi etichette
+                    if self.show_labels:
+                        self.canvas.create_text(X + H.r*2,
+                                                Y +  H.r*2 + H.font_size/2 ,
+                                                font=f"Times {H.font_size}", text=H.labels[i])
+                        
     def gestisci_movimento_mouse(self, evento):
         """Funzione per muovere i pallini"""
         # Individua punto nella griglia e conseguentemenete Hasse di riferimento
