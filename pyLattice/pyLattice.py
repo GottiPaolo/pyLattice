@@ -1,6 +1,6 @@
 import numpy as np
 import tkinter as tk
-from PIL import ImageGrab#Screeeeenshot fuck
+from PIL import ImageGrab #Screeeeenshot fuck
 """
 Beautiful is better than ugly.
 Explicit is better than implicit.
@@ -1023,6 +1023,8 @@ class PoSet:
             return L
         return Lattice.from_function(cuts,lambda a,b: a<= b)
       
+    # def dedekind_completetion(self, nice_labels = False) IT'S COMING
+      
     def restituiscimi_cover_matrix(self) -> None:
         """
         Funzione di supporto per stampare nel terminale la matrice di copertura nel caso debba esportarla
@@ -1616,8 +1618,8 @@ class Finestra():
         self.root.bind("<Down>", self.show_downset)
         self.root.bind("<Right>", self.side_show_contest)
         self.root.bind("<Left>", self.side_show_contest_fca)
-        #self.root.bind("s", self.save)
-        self.root.bind("s", self.capture_window)
+        self.root.bind("s", self.save)
+        #self.root.bind("s", self.capture_window)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
             self.root.bind('<Button-2>', self.applica_con)
@@ -1700,7 +1702,8 @@ class Finestra():
                     Y = (row +fy) * self.H #Y del cerchio
                     self.canvas.create_oval((X - r, Y - r),
                                             (X + r, Y + r),
-                                            fill = H.nodes_color[i])
+                                            fill = H.nodes_color[i],
+                                            outline='black')
                                         # Aggiungi etichette
                     if self.show_labels:
                         self.canvas.create_text(X + H.r*2,
@@ -1926,7 +1929,8 @@ class Finestra():
           canvas: L'oggetto canvas Tkinter.
           filename: Il nome del file PNG da salvare.
         """
-        self.canvas.postscript(file=f"PythonStuff/pyLattice/img/{self.title}.eps", colormode='color')
+        self.canvas.postscript(file="file_name.ps", colormode='color')
+        #self.canvas.postscript(file=f"PythonStuff/pyLattice/img/{self.title}.eps", colormode='color')
         
     def capture_window(self,evento):
         """
@@ -2084,10 +2088,16 @@ class DataSet():
         sep_g = /sum_{a,b in G} sep(a,b) * f_a * f_b
         """
         tot_sep = 0
+        n_tot = sum(self.f)
         for gruppo in partition:
+            sep_gruppo = 0
+            n_gruppo = sum([self.f[a] for a in gruppo])
             for i,a in enumerate(gruppo):
                 for b in gruppo[i+1:]:
-                    tot_sep += self.sep[a][b] * self.f[a] * self.f[b]    
+                    sep_gruppo += self.sep[a][b] * self.f[a] * self.f[b]  / (n_tot**2)  
+            if n_gruppo > 1:
+                tot_sep += sep_gruppo #* n_gruppo
+                #tot_sep += (sep_gruppo / (n_gruppo * (n_gruppo - 1))) * n_gruppo/n_tot
         return tot_sep
     
     def max_separation(self,partition):
@@ -2280,7 +2290,7 @@ class DataSet():
                         radius.append(self.f[i])
                     else:
                         radius[data.index(v)] += self.f[i]
-                L.radius = [r / normalize_costant for r in radius]
+                L.radius = [r**0.5 / normalize_costant for r in radius]
         Lattice.hasse(*lattices, show_labels=False, shape=(2000,500))
     
     def list_of_quotient_and_con(self, history_con = None, propotion = True, normalize_costant = 1):
@@ -2305,19 +2315,17 @@ class DataSet():
                         radius.append(self.f[i])
                     else:
                         radius[data.index(v)] += self.f[i]
-                L.radius = [r / normalize_costant for r in radius]
+                L.radius = [r**0.5 / normalize_costant for r in radius]
                 if index == 0:
                     for Q in congruences:
                         Q.radius = L.radius
             
         Lattice.hasse(*(lattices+congruences), show_labels=False,grid= (2,len(history_con)),init= False, shape=(2000,700))
         
- 
-    def list_of_quotient_relative_con(self, history_con = None, propotion = True, normalize_costant = 1):
+    def list_of_quotient_relative_con(self, history_con = None, propotion = True, normalize_costant = 1, temp_radius_f = lambda x: x, n_rows = None):
         """
         L'idea è semplice: mostriamo la lista di reticoli quoziente evidenziando sopra di essi di volta in volta la congruenza che vienne effetuata
         La parte complessa è tenere traccia di come evolvono le congruenze, ma penso che iterativamente diventi "facile"
-        FATTO DIO CANE
         """
         if not history_con:
             history_con, separations = self.gerarchic_cluster()
@@ -2354,11 +2362,13 @@ class DataSet():
                         radius.append(self.f[i])
                     else:
                         radius[data.index(v)] += self.f[i]
-                L.radius = [r / normalize_costant for r in radius]
-            
-        Lattice.hasse(*lattices,init=False,shape=(2000,500))
-            
-         
+                L.radius = [temp_radius_f(r) / normalize_costant for r in radius] 
+        if not n_rows:
+            Lattice.hasse(*lattices,init=False,shape=(2000,500),grid=(2,len(lattices)//2))
+        else:
+            Lattice.hasse(*lattices,init=False,shape=(2000,500),grid=(n_rows,len(lattices)//n_rows +(len(lattices)%n_rows != 0) ) )
+        return lattices
+                     
         
 def index_wrapper(self,*lista, from_index = False, to_index = False, func):
     """
@@ -2378,49 +2388,53 @@ def index_wrapper(self,*lista, from_index = False, to_index = False, func):
        
 class CWDataSet(DataSet):
     
-    def __init__(self, cw, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
+    def __init__(self, cw, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None, LLEs_separation = False):
         """
         Un dataset è un reticolo ma con associata una distribuzione di frequenza per ogni punto.
 
         """
+        self.cw = cw
         self.L = CW(*cw)
         
         assert len(freq) == len(self.L)
         self.f = freq
-        
-        #Fuzzy dom
-        if fuzzy_domination_function == 'BrueggemannLerche':
-            self.fuz_dom = self.BrueggemannLerche()
 
-        elif fuzzy_domination_function == 'LLEs':
-            self.fuz_dom = self.LLEs()
-            
-        elif callable(fuzzy_domination_function):
-            self.fuz_dom = fuzzy_domination_function(self.L)
-            
-        # T Norm
-        if t_norm_function == 'prod':
-            self.t_norm_func = lambda a,b: a*b
-            self.t_conorm_func = lambda a,b: a+b - a*b
-            
-        elif t_norm_function == "min":
-            self.t_norm_func = lambda a,b: min(a,b)
-            self.t_conorm_func = lambda a,b: max(a,b)
-            
-        elif t_norm_function == 'hamacher':
-            self.t_norm_func = lambda a,b: (a*b)/(a+b-a*b) if (a!=0 or b!=0) else 0
-            self.t_conorm_func = lambda a,b: (a+b)/(1+a*b) #Einstein sum
-  
-        elif callable(t_norm_function):
-            self.t_norm_func = t_norm_function
-            self.t_conorm_func = lambda a,b: 1-self.t_norm_func(1-a,1-b)
-            
-        # T_conorm function
-        if callable(t_conorm_function):
-            self.t_conorm_func = t_conorm_function
+        if LLEs_separation:
+            self.sep = self.LLEs_separation()
+        else:
+            #Fuzzy dom
+            if fuzzy_domination_function == 'BrueggemannLerche':
+                self.fuz_dom = self.BrueggemannLerche()
+
+            elif fuzzy_domination_function == 'LLEs':
+                self.fuz_dom = self.LLEs()
+
+            elif callable(fuzzy_domination_function):
+                self.fuz_dom = fuzzy_domination_function(self.L)
+
+            # T Norm
+            if t_norm_function == 'prod':
+                self.t_norm_func = lambda a,b: a*b
+                self.t_conorm_func = lambda a,b: a+b - a*b
+
+            elif t_norm_function == "min":
+                self.t_norm_func = lambda a,b: min(a,b)
+                self.t_conorm_func = lambda a,b: max(a,b)
+
+            elif t_norm_function == 'hamacher':
+                self.t_norm_func = lambda a,b: (a*b)/(a+b-a*b) if (a!=0 or b!=0) else 0
+                self.t_conorm_func = lambda a,b: (a+b)/(1+a*b) #Einstein sum
+    
+            elif callable(t_norm_function):
+                self.t_norm_func = t_norm_function
+                self.t_conorm_func = lambda a,b: 1-self.t_norm_func(1-a,1-b)
+
+            # T_conorm function
+            if callable(t_conorm_function):
+                self.t_conorm_func = t_conorm_function
 
 
-        self.sep = self.compute_separation()
+            self.sep = self.compute_separation()
         
     def BrueggemannLerche(self):
         """
@@ -2503,6 +2517,102 @@ class CWDataSet(DataSet):
                     
         return np.array(fuz_dom)
    
+    def LLEs_separation(self):
+        """
+        Versione operativa della Separation per reticoli CW con gradi di variabili tutti uguali e contesto LexicoGrafico
+        Formula ricavata da M. F.
+        """ 
+        assert self.cw.count(self.cw[0]) == len(self.cw) # Tutti uguali
+        
+        m = self.cw[0]
+        F1 = lambda k, k2: sum([(fact(k - j - 1) / fact(k2 - j)) * m**(k - j - 1) for j in range(k2 + 1)])
+        F2 = lambda k, k2: sum([(fact(k - j - 2) / fact(k2 - j)) * (1-m**(k-j-1))/(1-m) for j in range(k2 + 1)]) if k2 <= k - 2 else 0
+        
+        sep = np.zeros((len(self.L),len(self.L)))
+        #debug = pd.DataFrame({'p': [], 'q': [], 'obj[p]': [], 'obj[q]': [], 'A': [], 'B': [], 'C': [], 'D': [], 'k1': [], 'k2': [], 'k3': [], 'T+': [], 'T-': [], 'F1': [], 'F2': [], 'SEP': []})
+        for p in range(len(self.L)):
+            for q in range(p+1,len(self.L)):
+                k1 = 0
+                k2 = 0
+                k3 = 0 
+                T_plus = 0
+                T_minus = 0
+                for p_,q_ in zip(self.L[p],self.L[q]):
+                    if q_<p_:
+                        k1 += 1
+                        T_plus += p_-q_
+                    elif q_==p_: 
+                        k2+=1
+                    elif q_>p_:
+                        k3+=1
+                        T_minus += p_-q_
+
+                k = len(self.cw)
+                k2_fact= fact(k2)
+                F1_f = F1(k,k2)
+                F2_f = F2(k,k2)
+
+                A = T_plus * k2_fact*(F1_f+(k1 - 1)*F2_f)
+                B = T_minus * k1 * k2_fact * F2_f
+                C = - T_minus * k2_fact*(F1_f+(k3 - 1)*F2_f)
+                D = - T_plus * k3 * k2_fact * F2_f
+                sep[p][q] = (A + B + C + D)
+                sep[q][p] = sep[p][q]
+                #debug.loc[len(debug)] = [p, q, str(self.L.obj[p]), str(self.L.obj[q]), A, B, C, D, k1, k2, k3, T_plus, T_minus, F1_f, F2_f,A+B+C+D]
+        return sep
+    
+    def LLEs_vseparation(self):
+        """
+        Versione operativa della **Vertical** Separation per reticoli CW con gradi di variabili tutti uguali e contesto LexicoGrafico
+        Formula ricavata da M. F.
+        """ 
+        assert self.cw.count(self.cw[0]) == len(self.cw) # Tutti uguali
+        
+        m = self.cw[0]
+        F1 = lambda k, k2: sum([(fact(k - j - 1) / fact(k2 - j)) * m**(k - j - 1) for j in range(k2 + 1)])
+        F2 = lambda k, k2: sum([(fact(k - j - 2) / fact(k2 - j)) * (1-m**(k-j-1))/(1-m) for j in range(k2 + 1)]) if k2 <= k - 2 else 0
+        
+        sep = np.zeros((len(self.L),len(self.L)))
+        #debug = pd.DataFrame({'p': [], 'q': [], 'obj[p]': [], 'obj[q]': [], 'A': [], 'B': [], 'C': [], 'D': [], 'k1': [], 'k2': [], 'k3': [], 'T+': [], 'T-': [], 'F1': [], 'F2': [], 'SEP': []})
+        for p in range(len(self.L)):
+            for q in range(p+1,len(self.L)):
+                k1 = 0
+                k2 = 0
+                k3 = 0 
+                T_plus = 0
+                T_minus = 0
+                for p_,q_ in zip(self.L[p],self.L[q]):
+                    if q_<p_:
+                        k1 += 1
+                        T_plus += p_-q_
+                    elif q_==p_: 
+                        k2+=1
+                    elif q_>p_:
+                        k3+=1
+                        T_minus += p_-q_
+
+                k = len(self.cw)
+                k2_fact= fact(k2)
+                F1_f = F1(k,k2)
+                F2_f = F2(k,k2)
+
+                A = T_plus * k2_fact*(F1_f+(k1 - 1)*F2_f)
+                B = T_minus * k1 * k2_fact * F2_f
+                C = - T_minus * k2_fact*(F1_f+(k3 - 1)*F2_f)
+                D = - T_plus * k3 * k2_fact * F2_f
+                sep[p][q] = abs(A + B - C - D)
+                sep[q][p] = sep[p][q]
+                #debug.loc[len(debug)] = [p, q, str(self.L.obj[p]), str(self.L.obj[q]), A, B, C, D, k1, k2, k3, T_plus, T_minus, F1_f, F2_f,A+B+C+D]
+        return sep
+    
+    def LLEs_hseparation(self):
+        """
+        Versione operativa della **Horizontal** Separation per reticoli CW con gradi di variabili tutti uguali e contesto LexicoGrafico
+        Formula ricavata da M. F.
+        """ 
+
+                #debug.loc[len(debug)] = [p, q, str(self.L.obj[p]), str(self.L.obj[q]), A, B, C, D, k1, k2, k3, T_plus, T_minus, F1_f, F2_f,A+B+C+D]
+        return self.LLEs_separation() - self.LLEs_vseparation()
 """
 SFIDE FUTURE
  1. [ ] Cambiare i nomi di molte funzioni e variabili. Molte fanno schifo, sono controintuitive, manca di consistenza, ed alcune addirittura grammaticalmente sbagliate 
