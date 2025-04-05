@@ -680,7 +680,9 @@ class PoSet:
         """
         if strict:
             if len(a) == 0:
-                return {i for i in range(len(self))} # il down set di un set vuoto è tutto
+                return {i for i in range(len(self))} 
+                # il down set di un set vuoto è tutto #NON SONO D?ACCORDO, 
+                # anche perchè banalmente non possiamo avere upset e downset dll'insieme vuoto coincidenti
 
             if len(a) == 1:
                 downset = {i for i,r in enumerate(self.domination_matrix) if r[a[0]] and i != a[0]}
@@ -990,8 +992,9 @@ class PoSet:
         """
         return PoSet.from_function([self[i] for i in sub_set],lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
           
-    def dedekind_completetion(self, nice_labels = False):
+    def dedekind_completetion_old(self, nice_labels = False):
         """
+        Dedekind_completetion made by FCA. Computazionalmente una merda
         Solo un inizio per capire, fa computazionalmente schifo
         
         Implementanto in versione stupida O(2**n)
@@ -1023,8 +1026,35 @@ class PoSet:
             return L
         return Lattice.from_function(cuts,lambda a,b: a<= b)
       
-    # def dedekind_completetion(self, nice_labels = False) IT'S COMING
-      
+    def dedekind_completetion(self):
+        """
+        Dedekind implementato in maniera Step Wise secondo questo paper: https://economics.hse.ru/data/2013/02/20/1306848620/1998%20Stepwise%20Construction%20.pdf
+        
+        Posso migliorare molto cose in termini computazionali e di risultati pratici. Ma intanto è un'ottimo risultato.
+        """
+        # Lets'start with just one element
+        cur_set = {0}
+        cur_cuts = [({0},{0})]
+        for i in range(1,len(self)):
+            new_cuts = []
+            T = self.index_upset(i) & cur_set # Si può implementare molto melgio cercando direttamente in curset invece che fare un'intersezione alla fine, ma per ora ci accontentiamo
+            S = self.index_downset(i) & cur_set
+            new_cuts.append((S | {i},T | {i}))
+            for C,D in cur_cuts:
+                if C <= S and not D  <= T:
+                    new_cuts.append((C, D | {i}))
+                if not C <= S  and D  <= T:
+                    new_cuts.append((C | {i}, D ))
+                if not C <= S  and not D  <= T:
+                    new_cuts.append((C , D ))
+                    if C == self.index_downset(*list(D & T)) & cur_set:
+                        new_cuts.append((C | {i}, D & T ))
+                    if D == self.index_upset(*list(C & S)) & cur_set:
+                        new_cuts.append((C & S, D | {i} ))
+            cur_cuts = new_cuts
+            cur_set |= {i}
+        return PoSet.from_function(cur_cuts, lambda a,b: a[0]<=b[0])
+    
     def restituiscimi_cover_matrix(self) -> None:
         """
         Funzione di supporto per stampare nel terminale la matrice di copertura nel caso debba esportarla
@@ -1550,7 +1580,6 @@ class Lattice(PoSet):
         """
         return Lattice.from_function(genera_cw(lista),component_wise)
 
-
 class CW(Lattice):
     def __init__(self, *cw):
         """
@@ -1573,7 +1602,6 @@ class CW(Lattice):
         Super efficente grazie alla teoria
         """
         return join_irriducible_cw(*self.cw)
-    
     
 class Finestra():
     def __init__(self,*hasses,shape : tuple = (500,500), grid = None, show_labels = False, font_size = 12, title = 'PosetMagico', dinamic_con = False):
@@ -2368,24 +2396,7 @@ class DataSet():
         else:
             Lattice.hasse(*lattices,init=False,shape=(2000,500),grid=(n_rows,len(lattices)//n_rows +(len(lattices)%n_rows != 0) ) )
         return lattices
-                     
-        
-def index_wrapper(self,*lista, from_index = False, to_index = False, func):
-    """
-    just testing, non serve a niete
-    """
-    if from_index and to_index:
-        return self.func(*lista)
-
-    elif from_index:
-        return [self[x] for x in self.func(*lista)]
-    
-    elif to_index:
-        return self.func(self.obj.index[x] for x in lista)
-    
-    else:
-        return [self[x] for x in self.func(self.obj.index[x] for x in lista)]
-       
+                          
 class CWDataSet(DataSet):
     
     def __init__(self, cw, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None, LLEs_separation = False):
@@ -2613,6 +2624,23 @@ class CWDataSet(DataSet):
 
                 #debug.loc[len(debug)] = [p, q, str(self.L.obj[p]), str(self.L.obj[q]), A, B, C, D, k1, k2, k3, T_plus, T_minus, F1_f, F2_f,A+B+C+D]
         return self.LLEs_separation() - self.LLEs_vseparation()
+
+def index_wrapper(self,*lista, from_index = False, to_index = False, func):
+    """
+    just testing, non serve a niete
+    """
+    if from_index and to_index:
+        return self.func(*lista)
+
+    elif from_index:
+        return [self[x] for x in self.func(*lista)]
+    
+    elif to_index:
+        return self.func(self.obj.index[x] for x in lista)
+    
+    else:
+        return [self[x] for x in self.func(self.obj.index[x] for x in lista)]
+    
 """
 SFIDE FUTURE
  1. [ ] Cambiare i nomi di molte funzioni e variabili. Molte fanno schifo, sono controintuitive, manca di consistenza, ed alcune addirittura grammaticalmente sbagliate 
