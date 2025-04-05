@@ -992,9 +992,9 @@ class PoSet:
         """
         return PoSet.from_function([self[i] for i in sub_set],lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
           
-    def dedekind_completetion_old(self, nice_labels = False):
+    def dedekind_completion_old(self, nice_labels = False):
         """
-        Dedekind_completetion made by FCA. Computazionalmente una merda
+        Dedekind_completion made by FCA. Computazionalmente una merda
         Solo un inizio per capire, fa computazionalmente schifo
         
         Implementanto in versione stupida O(2**n)
@@ -1026,7 +1026,7 @@ class PoSet:
             return L
         return Lattice.from_function(cuts,lambda a,b: a<= b)
       
-    def dedekind_completetion(self):
+    def dedekind_completion(self, nice_labels = False):
         """
         Dedekind implementato in maniera Step Wise secondo questo paper: https://economics.hse.ru/data/2013/02/20/1306848620/1998%20Stepwise%20Construction%20.pdf
         
@@ -1036,9 +1036,9 @@ class PoSet:
         cur_set = {0}
         cur_cuts = [({0},{0})]
         for i in range(1,len(self)):
-            new_cuts = []
-            T = self.index_upset(i) & cur_set # Si può implementare molto melgio cercando direttamente in curset invece che fare un'intersezione alla fine, ma per ora ci accontentiamo
-            S = self.index_downset(i) & cur_set
+            new_cuts = [] 
+            T = {j for j in cur_set if self.domination_matrix[j][i]} # # # self.index_upset(i) & cur_set # Si può implementare molto melgio cercando direttamente in curset invece che fare un'intersezione alla fine, ma per ora ci accontentiamo
+            S = {j for j in cur_set if self.domination_matrix[i][j]} # # # self.index_downset(i) & cur_set
             new_cuts.append((S | {i},T | {i}))
             for C,D in cur_cuts:
                 if C <= S and not D  <= T:
@@ -1047,13 +1047,21 @@ class PoSet:
                     new_cuts.append((C | {i}, D ))
                 if not C <= S  and not D  <= T:
                     new_cuts.append((C , D ))
-                    if C == self.index_downset(*list(D & T)) & cur_set:
+                    if C == self.index_downset(*list(D & T)) & cur_set: # questo "&" non mi piace, devo migliorare
                         new_cuts.append((C | {i}, D & T ))
-                    if D == self.index_upset(*list(C & S)) & cur_set:
+                    if D == self.index_upset(*list(C & S)) & cur_set: # questo "&" non mi piace, devo migliorare
                         new_cuts.append((C & S, D | {i} ))
             cur_cuts = new_cuts
             cur_set |= {i}
-        return PoSet.from_function(cur_cuts, lambda a,b: a[0]<=b[0])
+        if nice_labels:
+            subsets_ = [self.index_downset(i) for i in range(len(self))]
+            obj = [self.obj[subsets_.index(cut[1])] if cut[1] in subsets_ else '' for cut in cur_cuts]
+            L = Lattice.from_function(cur_cuts, lambda a,b: a[0]>=b[0])
+            L.obj = obj
+            L.get_hasse_variables()
+            L.nodes_color = ['lightgreen' if L.obj[i] == '' else 'grey' for i in range(len(L))]
+            return L
+        return Lattice.from_function(cur_cuts, lambda a,b: a[0]>=b[0])
     
     def restituiscimi_cover_matrix(self) -> None:
         """
@@ -1641,7 +1649,7 @@ class Finestra():
         self.root.bind("l", self.show_labels_true)
         self.root.bind("p", self.show_labels_poset)
         self.root.bind("c", self.side_dinamic_con)
-        self.root.bind("d", self.dedekind)
+        self.root.bind("d", self.side_dedekind)
         self.root.bind("<Up>", self.show_upset)
         self.root.bind("<Down>", self.show_downset)
         self.root.bind("<Right>", self.side_show_contest)
@@ -1676,12 +1684,12 @@ class Finestra():
                         Y +  self.hasses[-1].r*2 + self.hasses[hasse_index].font_size/2 ,
                         font=f"Times {self.hasses[hasse_index].font_size}", text=self.hasses[hasse_index].labels[i], fill = 'black')
             
-    def dedekind(self, event):
+    def side_dedekind(self, event):
         """
         calcola il completamento di un PoSet
         """
         hasse_index,punto = self.identifica_punto(event.x, event.y)
-        A = Lattice.from_fca(self.hasses[hasse_index].obj,self.hasses[hasse_index].obj,self.hasses[hasse_index].domination_matrix)
+        A = self.hasses[hasse_index].dedekind_completion()
         A.get_hasse_variables()
         self.hasses += (A,)
         self.grid = (1, len(self.hasses))
@@ -2670,7 +2678,7 @@ SFIDE FUTURE
     - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente. In fondo basta cambiare get_hasse_variables()ª
             
 7. [ ] Improvment tecnici
-    - [ ] Implementare Dedekind Completetion serio, non FCA
+    - [ ] Implementare Dedekind completion serio, non FCA
     - [ ] Ottimizzare congruenze partendo a calcolarle dai meet-irriducibili quando sono meno dei join-irriducibili
     
 8. [ ] Definire altre operazioni tra PoSet e Lattices.
