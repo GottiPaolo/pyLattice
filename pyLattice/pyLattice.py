@@ -1056,12 +1056,12 @@ class PoSet:
         if nice_labels:
             subsets_ = [self.index_downset(i) for i in range(len(self))]
             obj = [self.obj[subsets_.index(cut[1])] if cut[1] in subsets_ else '' for cut in cur_cuts]
-            L = Lattice.from_function(cur_cuts, lambda a,b: a[0]>=b[0])
+            L = Lattice.from_function(cur_cuts, lambda a,b: a[0]<=b[0])
             L.obj = obj
             L.get_hasse_variables()
             L.nodes_color = ['lightgreen' if L.obj[i] == '' else 'grey' for i in range(len(L))]
             return L
-        return Lattice.from_function(cur_cuts, lambda a,b: a[0]>=b[0])
+        return Lattice.from_function(cur_cuts, lambda a,b: a[0]<=b[0])
     
     def restituiscimi_cover_matrix(self) -> None:
         """
