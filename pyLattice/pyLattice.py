@@ -1037,15 +1037,15 @@ class PoSet:
         cur_cuts = [({0},{0})]
         for i in range(1,len(self)):
             new_cuts = [] 
-            T = {j for j in cur_set if self.domination_matrix[j][i]} # # # self.index_upset(i) & cur_set # Si può implementare molto melgio cercando direttamente in curset invece che fare un'intersezione alla fine, ma per ora ci accontentiamo
-            S = {j for j in cur_set if self.domination_matrix[i][j]} # # # self.index_downset(i) & cur_set
+            T = {j for j in cur_set if self.domination_matrix[i][j]} # # # self.index_upset(i) & cur_set # Si può implementare molto melgio cercando direttamente in curset invece che fare un'intersezione alla fine, ma per ora ci accontentiamo
+            S = {j for j in cur_set if self.domination_matrix[j][i]} # # # self.index_downset(i) & cur_set
             new_cuts.append((S | {i},T | {i}))
             for C,D in cur_cuts:
                 if C <= S and not D  <= T:
                     new_cuts.append((C, D | {i}))
-                if not C <= S  and D  <= T:
+                elif not C <= S  and D  <= T:
                     new_cuts.append((C | {i}, D ))
-                if not C <= S  and not D  <= T:
+                elif not C <= S  and not D  <= T:
                     new_cuts.append((C , D ))
                     if C == self.index_downset(*list(D & T)) & cur_set: # questo "&" non mi piace, devo migliorare
                         new_cuts.append((C | {i}, D & T ))
