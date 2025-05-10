@@ -16,8 +16,9 @@ def count_unique(con):
 #                           congruence_lattice =C, shape = (800,800), show_labels= True, font_size= 15)
 # pene
 
-mostra_grafici = True
+mostra_grafici = False
 ## Construct a PoSet
+
 ### From a domination matrix
                     #  a  b  c  d  e 
 domination_matrix = [ [1, 0, 0, 0, 0], # a
@@ -88,6 +89,32 @@ if mostra_grafici:
     pl.PoSet.hasse(Q,Q,H, shape = (450, 150))
     pl.PoSet.hasse(Q,Q,H, grid = (1,3),shape = (450, 150))
 
+# Dedekind completion of a PoSet
+domination_matrix= [[1, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0], 
+                    [0, 1, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0], 
+                    [1, 1, 1, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0], 
+                    [1, 1, 0, 1,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0], 
+  
+                    [0, 0, 0, 0,   1, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0], 
+                    [0, 0, 0, 0,   0, 1, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0], 
+                    [0, 0, 0, 0,   1, 1, 1, 0,   0, 0, 0, 0,   0, 0, 0, 0], 
+                    [0, 0, 0, 0,   1, 1, 0, 1,   0, 0, 0, 0,   0, 0, 0, 0], 
+  
+                    [1, 1, 1, 1,   1, 1, 1, 1,   1, 0, 0, 0,   0, 0, 0, 0], 
+                    [1, 1, 1, 1,   1, 1, 1, 1,   0, 1, 0, 0,   0, 0, 0, 0], 
+                    [1, 1, 1, 1,   1, 1, 1, 1,   1, 1, 1, 0,   0, 0, 0, 0], 
+                    [1, 1, 1, 1,   1, 1, 1, 1,   1, 1, 0, 1,   0, 0, 0, 0],  
+                  
+                    [1, 1, 1, 1,   1, 1, 1, 1,   0, 0, 0, 0,   1, 0, 0, 0], 
+                    [1, 1, 1, 1,   1, 1, 1, 1,   0, 0, 0, 0,   0, 1, 0, 0], 
+                    [1, 1, 1, 1,   1, 1, 1, 1,   0, 0, 0, 0,   1, 1, 1, 0], 
+                    [1, 1, 1, 1,   1, 1, 1, 1,   0, 0, 0, 0,   1, 1, 0, 1]
+              ]
+
+P = pl.PoSet(domination_matrix)
+L = P.dedekind_completion(nice_labels=True)
+if mostra_grafici:
+    pl.Lattice.hasse(P,L, show_labels = True)
 
 # Lattice
 ## powersets
@@ -115,19 +142,6 @@ if mostra_grafici:
     P.hasse(shape = (200,400), show_labels = True, font_size=12)
 
 
-## Dedekind completition of a PoSet (beta)
-c = [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [1, 1, 0, 0],
-    [1, 1, 0, 0]
-]
-
-P = pl.PoSet.from_cover_matrix(c)
-if mostra_grafici:
-    P.hasse(P.dedekind_completetion(nice_labels=True),shape=(400,200), show_labels= True)
-
-
 ### Congruencens
 
 #### All congruences on 3 pwst
@@ -150,11 +164,6 @@ if mostra_grafici:
 if mostra_grafici:
     L.dinamic_congruences(shape=(1400,700))
     
-
-## Temp
-L = pl.Lattice.from_power_set(2)
-L = L + L + L
-L.dinamic_congruences(shape=(1400,700))
 
 ### DataSet
 cw = (2,3,3)
@@ -210,3 +219,5 @@ for fuzzy_d in ('BrueggemannLerche', 'LLEs'):
 if mostra_grafici:       
     pl.Lattice.hasse(*hasses[1:],show_labels=True, shape = (1200,900), 
                  grid = (4,3), title = 'All', init = False)
+    
+D.list_of_quotient_relative_con(normalize_costant=0.2, temp_radius_f=lambda x: x**0.5, n_rows=1,)

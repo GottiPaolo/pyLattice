@@ -1055,7 +1055,7 @@ class PoSet:
             cur_set |= {i}
         if nice_labels:
             subsets_ = [self.index_downset(i) for i in range(len(self))]
-            obj = [self.obj[subsets_.index(cut[1])] if cut[1] in subsets_ else '' for cut in cur_cuts]
+            obj = [self.obj[subsets_.index(cut[0])] if cut[0] in subsets_ else '' for cut in cur_cuts]
             L = Lattice.from_function(cur_cuts, lambda a,b: a[0]<=b[0])
             L.obj = obj
             L.get_hasse_variables()
@@ -1650,6 +1650,7 @@ class Finestra():
         self.root.bind("p", self.show_labels_poset)
         self.root.bind("c", self.side_dinamic_con)
         self.root.bind("d", self.side_dedekind)
+        self.root.bind("f", self.focus)
         self.root.bind("<Up>", self.show_upset)
         self.root.bind("<Down>", self.show_downset)
         self.root.bind("<Right>", self.side_show_contest)
@@ -1689,8 +1690,8 @@ class Finestra():
         calcola il completamento di un PoSet
         """
         hasse_index,punto = self.identifica_punto(event.x, event.y)
-        A = self.hasses[hasse_index].dedekind_completion()
-        A.get_hasse_variables()
+        A = self.hasses[hasse_index].dedekind_completion(nice_labels = True)
+        # A.get_hasse_variables()
         self.hasses += (A,)
         self.grid = (1, len(self.hasses))
         self.W = self.shape[0] / self.grid[1]
@@ -1986,6 +1987,13 @@ class Finestra():
                   int(y+height*r)))
         takescreenshot.save(f"/Users/paologotti/Library/CloudStorage/OneDrive-Personale/Tesi/PythonStuff/pyLattice/img/{self.title}.png")
 
+    def focus(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses = (self.hasses[hasse],)
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()        
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -2678,7 +2686,7 @@ SFIDE FUTURE
     - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente. In fondo basta cambiare get_hasse_variables()ª
             
 7. [ ] Improvment tecnici
-    - [ ] Implementare Dedekind completion serio, non FCA
+    - [x] Implementare Dedekind completion serio, non FCA: implemettato in maniera step-wise. Probabilmente posso ancora migliorare qualcosa. Oppure posso prenderne ispirazione per migliorrare FCA
     - [ ] Ottimizzare congruenze partendo a calcolarle dai meet-irriducibili quando sono meno dei join-irriducibili
     
 8. [ ] Definire altre operazioni tra PoSet e Lattices.
