@@ -1966,8 +1966,7 @@ class Finestra():
           canvas: L'oggetto canvas Tkinter.
           filename: Il nome del file PNG da salvare.
         """
-        self.canvas.postscript(file="file_name.ps", colormode='color')
-        #self.canvas.postscript(file=f"PythonStuff/pyLattice/img/{self.title}.eps", colormode='color')
+        self.canvas.postscript(file=f"{self.title}.eps", colormode='color')
         
     def capture_window(self,evento):
         """
@@ -2640,6 +2639,27 @@ class CWDataSet(DataSet):
 
                 #debug.loc[len(debug)] = [p, q, str(self.L.obj[p]), str(self.L.obj[q]), A, B, C, D, k1, k2, k3, T_plus, T_minus, F1_f, F2_f,A+B+C+D]
         return self.LLEs_separation() - self.LLEs_vseparation()
+
+    def get_aggregated_levels(self, list_of_con):
+        """
+        Data la sequenza di congruenze gerarchice (primo output di gerarchic_cluster) 
+        restituisce il livello aggregato ad ogni step, in particolare restituisce una lista di profili 
+        dove ogni elemento è 0 per ogni entrata eccetto il livello aggregato con il precedente.
+
+        Ad esempio un output del tipo: [(0, 0, 1), (0, 0, 2), (1, 0, 0), (0, 2, 0), (0, 1, 0)]
+        indica che 
+        - il primo step ha aggregato il secondo livello della terza variabile con il primo ((0, 0, 1) - (0, 0, 0))
+        - il secondo step ha aggregato il terzo livello della terza variabile con il secondo ((0, 0, 2) - (0, 0, 1)) # chiaramente dato il passagio preceedente è transitivamente legato anche al precedente
+        - il terzo step ha aggregato il secondo livello della prima variabile con il primo ((1, 0, 0) - (0, 0, 0))
+        - Etc.
+        """
+        jr_ = self.L.index_join_irriducibili() # i gradi sono gli elementi irriducibili ! 
+        aggregated = []
+        for i in range(len(list_of_con)-1):
+            for j in jr_:
+                if list_of_con[i-1][j] != list_of_con[i][j]:
+                    aggregated.append(self.L[j])
+        return aggregated
 
 def index_wrapper(self,*lista, from_index = False, to_index = False, func):
     """
