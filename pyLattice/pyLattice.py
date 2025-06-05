@@ -457,7 +457,6 @@ class PoSet:
             self.domination_matrix = np.array(domination_matrix)
         elif type(domination_matrix) == np.ndarray:
             self.domination_matrix = domination_matrix
-              
         self.cover_matrix = self.domination_matrix - np.eye(len(domination_matrix)) - np.where((self.domination_matrix - np.eye(len(domination_matrix))) @ (self.domination_matrix - np.eye(len(domination_matrix))) > 0,1,0)
 
     def domination(self,a,b, from_index = False):
@@ -874,23 +873,24 @@ class PoSet:
     
     def __sub__(self,other):
         """
-        Come differenza per ora ho definito la and component. sembra un casino ma è utile in certe costruizioni di reticoli
-        Se io ho tre elementi 1,2,3. Se in un poset ho li ho ordinati come 1>2>3 ed in un altro 2>1>3. Allora posso costruire il poset
-        allora posso costruire il poset in cui 1||2 ma 1,2 > 3. In altre parole il più piccolo PoSet che li rispetta entrambi
-        
-        Fun fact: per come ho definito la sottrazione è commuttativa!
+        FOTTUTAMENTE BUGGATO, l'idea è bellisima ma così non funziona ancora,
+        P1 = PoSet.from_function(list(range(1, 21)), lambda a, b: a % b == 0)
+        P2 = PoSet.from_function(list(range(1, 40, 2)), lambda a,b: a % b == 0)
+        P3 = P1 - P2 
+        Questo un esempio dove P3 non ha fottutamente senso, il che è un vero peccato, perchè per molte cose è davvero uno
+
+        # Wait wait wait np.where(self.domination_matrix-other.domination_matrix > 0,1,0
+        # ha senso questa cosa, in realtà credo di si
         """
         assert len(self) == len(other)
-        return PoSet(np.where(self.domination_matrix+other.domination_matrix > 1,1,0))
-    
+        return PoSet(np.where(self.domination_matrix-other.domination_matrix > 0,1,0) + np.eye(len(self)),self.obj) # VA TESTATO
+
     def __or__(self, other):
         """
-        Definisce l'operatore & come l'intersezione di due PoSet.
-        I due poset devono essere grandi uguli e ordinati uguali, vengono matenute tutte le dominaanze comuni
-        ma se una dominanza è presente in uno e nell'altro è presente in maniera inversa allora i due punti vengono collasati
-        Può funzionare? Non lo so sinceramente
+        Definisce l'operatore | come l'unione di due PoSet.? boh proviamo
         """
-        pass
+        new_matrix = np.where(self.domination_matrix+other.domination_matrix > 0,1,0)
+        return PoSet(new_matrix,self.obj)
 
     def __and__(self, other):
         """
@@ -898,7 +898,8 @@ class PoSet:
         I due poset devono essere grandi uguli e ordinati uguali, vengono matenute solo le dominaanze comuni
         """
         assert len(self) == len(other)
-        new_matrix = np.array([[1 if s and o else 0 for s,o in zip(s_,o_)] for s_,o_ in zip(self.domination_matrix,other.domination_matrix)])
+        # new_matrix = np.array([[1 if s and o else 0 for s,o in zip(s_,o_)] for s_,o_ in zip(self.domination_matrix,other.domination_matrix)])
+        new_matrix = np.where(self.domination_matrix+other.domination_matrix > 1,1,0) # NON è la stessa cosa ma meglio?
         return PoSet(new_matrix,self.obj)
     
     def __neg__(self):
@@ -908,6 +909,15 @@ class PoSet:
         """
         return self.dual()
     
+    def index(self,element):
+        """
+        Restituisce l'indice di un elemento del poset
+        """
+        if element in self.obj:
+            return self.obj.index(element)
+        else:
+            raise ValueError(f"{element} non è un elemento del poset")
+
     def sort(self):
         """
         Metodo naive per ordinare una matrice di dominanze (e oggetti) in base al numero di dominanze ricevute e date
@@ -1160,6 +1170,13 @@ class PoSet:
     def get_all_linear_ex(self):
         """
         Genera tutte le estensioni lineari 
+        L'algoritmo è semplicemente un grafo ad albero ricorsivo delle scelte che partendo dagli elemtni più in alto 
+        (quelli che non sono dominati da nessuno esccetto se sestessi possibilie_scelte =  sorted(self.max_sub_set(elementi)))
+        "srotola" il poset fino al fondo
+
+        Sono convintissimo di poterlo migliorare parecchio, calcolare ogni volta self.max_sub_set(elementi) è semplicemente stupido
+        Dovrei tenere traccia del punto che aggiungo e cercare tra quelli che copre se qualcuno diventa una nuova cima nell sottoinsieme risultante
+        Il problema di fare così è che si complica la parte ricorsiva dell'algoritmo
         """
         all_ = []
         elementi = list(range(len(self)))
@@ -1195,6 +1212,17 @@ class PoSet:
                 elementi.insert(max_,max_)
         return all_
         
+    def from_random(n, p=.5):
+        """
+        Genera un poset casuale, indica la proprietà che un elemento copra un altro, 
+        ma attenzione questa non è davvero rappresentativa dell'output finale 
+        """
+        matrix = np.zeros((n,n))
+        for i in range(n-1):
+            for j in range(i+1):
+                matrix[i + 1][j] = int(np.random.random() < p)
+        return PoSet.from_cover_matrix(matrix)     
+      
 class Lattice(PoSet):
     ## Personal Function
     def join(self,*args):
@@ -2681,32 +2709,36 @@ def index_wrapper(self,*lista, from_index = False, to_index = False, func):
 SFIDE FUTURE
  1. [ ] Cambiare i nomi di molte funzioni e variabili. Molte fanno schifo, sono controintuitive, manca di consistenza, ed alcune addirittura grammaticalmente sbagliate 
     - [ ] ad esempio, a parte "from_function", tutti i "from" possono scomparire. Lattice.chain(), Lattice.powerset() etc sono molto più chiari
+    - [ ] Tipo la cluster gerarchica in inglese non si chiama `gerarchic_cluster` ma `hierarchic` o qualcosa di simile, in generale riguarda il tuo inglese paolo
  2. [ ] Capire come automatizzare il processo di eseguire le funzioni su indici o elementi, probabilmente si può fare in maniera intelligente con i wrapper.
  3. [ ] Interazione tra reticoli e poset: voglio gestire in qualche maniera, che non so ancora, diversi poset sugli stessi elementi. Oppure diversi poset che hanno alcuni elementi in comune. Così come dall'insieme di estensioni lineari di un poset posso generare  l'originale mantenendo solo quelle comuni (this should be easy for example):
     - [ ] Due poset con le stesse dimensioni, supponendo che abbiano gli stessi elementi, ordinati uguali. Possono essere intersecati "&" e vengono mantenute solo le dominanze comuni.
     - [ ] Scomposizione di un poset
+        - [ ] Scomposizione di un poset in "alberi" ovvero in poset dove aAb è definito se e solo se a < b  e dunque aAb = a, oppure b < a e dunque aAb = b ("A" è l'operatore binario _meet_ come "V" indica l'operatore binario join)
+        - [ ] Scomporre un poset in catene. Questo deve essere davvero interessante  da ragionare come algoritmo
  4. [ ] Migliorare l'aspetto grafico:
     - [ ] Una cazzo di griglia costumizzabile dai... L'equivalente di subplots in matplot lib per multigrafici
         - [ ] Poter dare solo righe
         - [ ] Poter dare solo colonne
-        - [ ] Poter specificare entrambi in maniera sensata
+        - [ ] Poter specificare entrambi in maniera sensata (penso di averlo acquisito dai)
         - [ ] Poter dare entrambi con relative proporzioni 
     - [ ] Creare un unica funzione per aggiungere poset e reticoli alla griglia!
     - [ ] Devo entrare nell'ottica di avere un oggetto del tipo "figura" autonomo. Posso generarlo quando creo L.hasse() oppure crearlo e poi inserigli i reticoli
 
 5. [ ] Improvment generici per GUI, in ottica di crearmi il plugin per obsidian prima o poi (sostanzialmente non male comunque):
-    - [ ] Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset
-        Riordinare i punti in maniera tale di avere meno sovrapposizioni possibili, qualcosa di ricorsivo, leggiti articoli online pirla
+    - [ ] Studiare un cazzo di algoritmo (mi suiciderò prima di farlo) che ottimizzi la grafica di un poset: riordinare i punti in maniera tale di avere meno sovrapposizioni possibili, qualcosa di ricorsivo, leggiti articoli online pirla
     - [ ] Creare due "modalità": intersezione - unione per selezionare i punti
     - [ ] Creare una rappresentazione apposita ed adatta alle FCA.
     - [ ] Labels più chiare, più intuitive, più costumizzabili (posizione, dimensioni, interattivament nella gui etc.)
     
 6. [ ] FCA: funzinoa tutto ma:
     - [ ] Studiare algoritmi efficienti
-    - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente. In fondo basta cambiare get_hasse_variables()ª
+        - penso si possa prendere l'attuale algoritmo di Dedekind e adattarlo appositamente, in fondo io già so che l'FCA è un reticolo generato dai contesti formali, 
+        so anche identificarli in O(n) scorrendo gli attributti o gli oggetti a piacere e applicando l'operatore di chiusura. Alla fine mi basta trovare questi e chiuderli con dedekind no? Farò un test
+    - [ ] Dedicare una classe apposta FCA(Lattice) per il reticolo dei contesti formali, in modo da poterlo rappresentare e trattare adeguatamente. In fondo basta cambiare get_hasse_variables(): paolo hai cazzo ragione, un punto per te
             
 7. [ ] Improvment tecnici
-    - [x] Implementare Dedekind completion serio, non FCA: implemettato in maniera step-wise. Probabilmente posso ancora migliorare qualcosa. Oppure posso prenderne ispirazione per migliorrare FCA
+    - [x] Implementare Dedekind completion serio, non FCA: implemettato in maniera step-wise. Probabilmente posso ancora migliorare qualcosa.
     - [ ] Ottimizzare congruenze partendo a calcolarle dai meet-irriducibili quando sono meno dei join-irriducibili
     
 8. [ ] Definire altre operazioni tra PoSet e Lattices.
@@ -2719,4 +2751,10 @@ SFIDE FUTURE
 10. [ ] Paolo, ma perchè non hai mai messo una funzione max e min semplicemente? 
     All'interno di un poset ti restituiscono una lista di valori che può essere vuota, con un solo elemento o con più
     in un reticolo sai invece che è ben definita
+
+11. [ ] Inserire alcune funzioni di benchmark alla base:
+    - [ ] Generale un poset casualmente: non mi interessa (per ora) spaccarmi la testa su cosa significa "casualmente"
+        Perchè mantenere l'omogeneità tra tutti i possibili poset fissata la dimensione penso sia un problema di dimensioni incredibili
+        Però generarne alcuni casuali per fare dei test è un qualcosa che mi serve spesso, ed ho implementato spesso in separata sede, non capisco perchè non dovrei inserirlo qua
+        (tempo che ho scritto il paragrafo avrei potuto implementarlo)
 """
