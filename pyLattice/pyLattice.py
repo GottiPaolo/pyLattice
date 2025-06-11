@@ -1745,12 +1745,12 @@ class Finestra():
     def return_classic(self, event):
         hasse_index, punto = self.identifica_punto(event.x,event.y)
         self.hasses[hasse_index].get_hasse_variables()
-        self.disegna_singolo_hasse(hasse_index)
+        self.disegna()
 
     def change_classic(self, event):
         hasse_index, punto = self.identifica_punto(event.x,event.y)
         self.hasses[hasse_index].get_hasse_variables(mode = False)
-        self.disegna_singolo_hasse(hasse_index)
+        self.disegna()
    
     def irr_con_poset(self,event):
         """Funzione di test temporanea per generare soltanto il poset delle congruenze join irriducibili"""
@@ -1809,7 +1809,6 @@ class Finestra():
         indice = self.hasses[hasse_index-1].index(nome)
         self.hasses[hasse_index-1].nodes_color[indice]='lightblue' # Aggiorna l'oggetto del poset precedente con il punto identificato
         self.disegna()
-        self.disegna_singolo_hasse(hasse_index - 1)
 
     def show_labels_true(self,event):
         """
@@ -1818,7 +1817,7 @@ class Finestra():
         """
         hasse_index,punto = self.identifica_punto(event.x, event.y) 
         self.hasses[hasse_index].show_labels = not self.hasses[hasse_index].show_labels
-        self.disegna_singolo_hasse(hasse_index)   
+        self.disegna()   
         
     def show_labels_poset(self, event):
         """
@@ -1882,53 +1881,37 @@ class Finestra():
         """
         main, penso sia chiaro
         """
-        for i in range(len(self.hasses)):
-            self.disegna_singolo_hasse(i)
-        # self.canvas.delete("all")
-        # for poset_index,H in enumerate(self.hasses):
-        #     row = poset_index // self.grid[1]
-        #     col = poset_index % self.grid[1]
-        # 
-        #     # Disegna linee
-        #     for i,(a,b) in enumerate(H.vertex):
-        #         if H.vertex_color[i] != 'black': #Diverso spessore
-        #             self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
-        #                                     ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
-        #                                     width = 3, fill = H.vertex_color[i]
-        #                                     )
-        #         else:
-        #             self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
-        #                                     ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
-        #                                     width = 2, fill = H.vertex_color[i]
-        #                 )
-        #     
-        #     # Disegna cerchi
-        #     if hasattr(H,"radius"):
-        #         """Troverò una maniera più sensata prima o poi, questa è davvero stupida"""
-        #         for (i,(fx,fy)),r in zip(enumerate(H.nodes),H.radius):
-        #             X = (col + fx) * self.W #X del cerchio
-        #             Y = (row +fy) * self.H #Y del cerchio
-        #             self.canvas.create_oval((X - r, Y - r),
-        #                                     (X + r, Y + r),
-        #                                     fill = H.nodes_color[i],
-        #                                     outline='black')
-        #                                 # Aggiungi etichette
-        #             if self.show_labels:
-        #                 self.canvas.create_text(X + H.r*2,
-        #                                         Y +  H.r*2 + H.font_size/2 ,
-        #                                         font=f"Times {H.font_size}", text=H.labels[i])
-        #     else:
-        #         for i,(fx,fy) in enumerate(H.nodes):
-        #             X = (col + fx) * self.W #X del cerchio
-        #             Y = (row +fy) * self.H #Y del cerchio
-        #             self.canvas.create_oval((X - H.r, Y - H.r),
-        #                                     (X + H.r, Y + H.r),
-        #                                     fill = H.nodes_color[i])    
-        #             # Aggiungi etichette
-        #             if self.show_labels:
-        #                 self.canvas.create_text(X + H.r*2,
-        #                                         Y +  H.r*2 + H.font_size/2 ,
-        #                                         font=f"Times {H.font_size}", text=H.labels[i])
+        self.canvas.delete("all")
+        for i,H in enumerate(self.hasses):
+            row = i // self.grid[1]
+            col = i % self.grid[1]
+
+            # Disegna linee
+            for i,(a,b) in enumerate(H.vertex):
+                if H.vertex_color[i] != 'black': #Diverso spessore
+                    self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
+                                            ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
+                                            width = 3, fill = H.vertex_color[i]
+                                            )
+                else:
+                    self.canvas.create_line(((col + H.nodes[a][0]) * self.W, (row + H.nodes[a][1]) * self.H),
+                                            ((col + H.nodes[b][0]) * self.W, (row + H.nodes[b][1]) * self.H),
+                                            width = 2, fill = H.vertex_color[i]
+                        )
+            
+            # Disegna cerchi
+            for i,(fx,fy) in enumerate(H.nodes):
+                X = (col + fx) * self.W #X del cerchio
+                Y = (row +fy) * self.H #Y del cerchio
+                self.canvas.create_oval((X - H.r, Y - H.r),
+                                        (X + H.r, Y + H.r),
+                                        fill = H.nodes_color[i])
+                
+            # Aggiungi etichette
+                if H.show_labels:
+                    self.canvas.create_text(X + H.r*1.5,
+                                            Y +  H.r*2 + H.font_size/2 ,
+                                            font=f"Times {H.font_size}", text=H.labels[i])
                         
     def gestisci_movimento_mouse(self, evento):
         """Funzione per muovere i pallini"""
@@ -1988,7 +1971,7 @@ class Finestra():
         # Se un cerchio è stato selezionato, mostra la relativa Congruenza
         if cerchio_selezionato != None: # figa e lo 0??
             self.hasses[self.lattice_index].show_congruence(self.hasses[hasse_index][cerchio_selezionato])
-            self.disegna_singolo_hasse(self.lattice_index)
+            self.disegna()
  
     def show_all_irriducible(self, skip):
         """clear """
@@ -2052,18 +2035,17 @@ class Finestra():
                 temp.append(L)
         self.hasses = tuple(temp)
 
-        self.disegna_singolo_hasse(self.lattice_index)
-        self.disegna_singolo_hasse(hasse_index)
+        self.disegna()
         
     def show_upset(self,evento):
         hasse,punto = self.identifica_punto(evento.x,evento.y)
         self.hasses[hasse].show_nodes(self.hasses[hasse].upset(punto), 'red')    
-        self.disegna_singolo_hasse(hasse)
+        self.disegna()
     
     def show_downset(self,evento):
         hasse,punto = self.identifica_punto(evento.x,evento.y)
         self.hasses[hasse].show_nodes(self.hasses[hasse].downset(punto), 'red')  
-        self.disegna_singolo_hasse(hasse)
+        self.disegna()
     
     def side_show_contest(self,evento):
         """
@@ -2158,7 +2140,7 @@ class Finestra():
         self.grid = (1, len(self.hasses))
         self.W = self.shape[0] / self.grid[1]
         self.H = self.shape[1] / self.grid[0]
-        self.disegna_singolo_hasse(hasse)
+        self.disegna()
 
     def side_downset(self,evento):
         hasse,punto = self.identifica_punto(evento.x,evento.y)
@@ -2169,7 +2151,7 @@ class Finestra():
         self.grid = (1, len(self.hasses))
         self.W = self.shape[0] / self.grid[1]
         self.H = self.shape[1] / self.grid[0]
-        self.disegna_singolo_hasse(hasse)
+        self.disegna()
 
     def sort_diagram(self,evento):
         """
@@ -2179,7 +2161,7 @@ class Finestra():
         list(range(len(self.hasses[hasse])))
         self.hasses[hasse].sort()
         self.hasses[hasse].get_hasse_variables()
-        self.disegna_singolo_hasse(hasse)
+        self.disegna()
 
     def random_sort_diagram(self,evento):
         """
@@ -2194,7 +2176,7 @@ class Finestra():
         self.hasses[hasse].obj = [self.hasses[hasse].obj[i] for i in lista]
 
         self.hasses[hasse].get_hasse_variables()
-        self.disegna_singolo_hasse(hasse)
+        self.disegna()
 
     def scarta_hasse(self,evento):
         if len(self.hasses) == 1:
@@ -2209,15 +2191,17 @@ class Finestra():
     def disegna_singolo_hasse(self,hasse_index):
         """
         Disegna un singolo hasse: Grand improvmente nella logica di questa GUI
+        SCHIFEZZA: NOTA BENE, SE NON CANCELLI FISCAMENTE GLI OGGETTI E COPRI CON UN RETTANOGLO BIANCO
+        RIEMPI LA CAZZO DI RAM, LA LOGICA NON MI SPIACE; MA PER ORA QUESTA FUNZIONE È UNA SCHIFEZZA
         """
         
-        
+
         H = self.hasses[hasse_index]
         row = hasse_index // self.grid[1]
         col = hasse_index % self.grid[1]
 
         self.canvas.create_rectangle(col * self.W, row * self.H, (col + 1) * self.W, (row + 1) * self.H, fill='white', outline='white')
-
+        # MALISSIMO Per disegnare un solo 
         # Disegna linee
         for i,(a,b) in enumerate(H.vertex):
             if H.vertex_color[i] != 'black': #Diverso spessore
