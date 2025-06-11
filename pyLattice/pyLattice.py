@@ -1,6 +1,7 @@
 import numpy as np
 import tkinter as tk
 from PIL import ImageGrab #Screeeeenshot fuck
+
 """
 Beautiful is better than ugly.
 Explicit is better than implicit.
@@ -26,6 +27,40 @@ Namespaces are one honking great idea -- let's do more of those!
 
 
 #### Hasse functions
+
+def get_riga_punto_down(cover_matrix,p,righe):
+    """
+    Attualmente l'algoritmo del diagramma di hasse pone un punto
+    il più in alto possibile. 
+    Per diversi motivi a volte è interessante porlo il più in basso possibile
+    Per fare questo è "abbastanza" semplice avendo già il numero di riga per ogni punto
+    """
+    if righe[p]:
+        return righe[p]
+    
+    elif sum(cover_matrix.T[p]) == 0:
+        return 0
+    
+    else:
+        riga_temp = 0
+        for i in range(len(cover_matrix)):
+            if cover_matrix[i][p] == 1 and not righe[i]:
+                righe[i] = get_riga_punto_down(cover_matrix,i,righe) # ma vaffanculo AHHAHA non avevo cambiato il richiamo ricorsivo, quanto si può essere stupidi
+            if cover_matrix[i][p] == 1 and righe[i] >= riga_temp:
+                riga_temp = righe[i] + 1
+        righe[p] = riga_temp
+        return riga_temp
+    
+def get_righe_2(cover_matrix):
+    """
+    Devo ottimizzare ma nice
+    """
+    righe = [None for i in range(len(cover_matrix))]
+    for j in range(len(cover_matrix)):
+        righe[j] = get_riga_punto_down(cover_matrix,j,righe)
+    m_ = max(righe)
+    return [ m_ - x  for x in righe]
+
 def get_riga_punto(cover_matrix,p,righe):
     """
     funzione per ottenere la riga di un punto in un diagramma di Hasse a partire dalle righe note e dalla matrice di copertura
@@ -408,7 +443,7 @@ def permuta_matrice(matrice,nuovo_ordine):
     for i in range(len(matrice)):
         for j in range(len(matrice)):
             new_m[i][j] = matrice[nuovo_ordine[i]][nuovo_ordine[j]]
-    return new_m
+    return np.array(new_m)
 
 def product(lista):
     """
@@ -926,8 +961,8 @@ class PoSet:
         lista = list(range(len(self)))
         dati = [(sum(self.cover_matrix[i]), sum([self.cover_matrix[k][i] for k in range(len(self))])) for i in range(len(self))]
         lista.sort(key = lambda i:dati[i])
-        self.domination_matrix = permuta_matrice(self.domination_matrix,lista)
-        self.cover_matrix = permuta_matrice(self.cover_matrix,lista)
+        self.domination_matrix = np.array(permuta_matrice(self.domination_matrix,lista))
+        self.cover_matrix = np.array(permuta_matrice(self.cover_matrix,lista))
         self.obj = [self.obj[i] for i in lista]
     
     def dual(self):
@@ -1095,11 +1130,16 @@ class PoSet:
         self.labels = [str(i) for i in range(len(self))]
           
     def get_hasse_variables(self,labels = None, radius = 4, font_size = 12, vertex_color = None,
-                            nodes_color = None, stroke_weights = None):
+                            nodes_color = None, stroke_weights = None, mode = True):
         """
         Funzione che genera tutte le variabili necessarie per la rappresentazione di Hasse, di base il poset non le possiede
+        mode = True -> i punti vengono piazzati il più in alto possibile, la riga di un punto è appena sotto il più basso di quelli che lo coprono
+        mode = False -> i punti vengono piazzati in modo da essere il in basso possibile: la riga di un punto è appena sopra il più alto di quelli che copre
         """
-        rows = get_righe(self.cover_matrix)
+        if mode:
+            rows = get_righe(self.cover_matrix)
+        else:
+            rows = get_righe_2(self.cover_matrix)
         cols = get_colonne(righe = rows)
         gaps_x = [rows.count(x) ** -1 for x in rows]
         gap_y = (max(rows)+1) ** -1
@@ -1674,16 +1714,25 @@ class Finestra():
         self.canvas.bind("<Configure>", self.resize)
         self.root.bind("j", self.show_all_irriducible)
         self.root.bind("r", self.reset)
-        self.root.bind("l", self.show_labels_true)
-        self.root.bind("p", self.show_labels_poset)
+        self.root.bind("l", self.show_labels_true) # Da implementare in maniera indipendente per ogni hasse diagram
+        self.root.bind("p", self.show_labels_poset) # andrà modificato quando modifico quello citato sopra
         self.root.bind("c", self.side_dinamic_con)
         self.root.bind("d", self.side_dedekind)
+        self.root.bind("x", self.scarta_hasse)
         self.root.bind("f", self.focus)
+        self.root.bind("i", self.identify)
+        self.root.bind("<space><Up>",self.side_upset)
+        self.root.bind("<space><Down>",self.side_downset)
         self.root.bind("<Up>", self.show_upset)
         self.root.bind("<Down>", self.show_downset)
         self.root.bind("<Right>", self.side_show_contest)
-        self.root.bind("<Left>", self.side_show_contest_fca)
-        self.root.bind("s", self.save)
+        self.root.bind("<Left>", self.side_show_contest_dedekind)
+        self.root.bind("s", self.sort_diagram)
+        self.root.bind("w", self.random_sort_diagram)
+        self.root.bind("z", self.irr_con_poset)
+        self.root.bind("1", self.compute_step_congruence)
+        self.root.bind("2", self.return_classic)
+        self.root.bind("3", self.change_classic)
         #self.root.bind("s", self.capture_window)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
@@ -1692,9 +1741,79 @@ class Finestra():
             self.con_index = 1
         self.root.mainloop()
        
+    def return_classic(self, event):
+        hasse_index, punto = self.identifica_punto(event.x,event.y)
+        self.hasses[hasse_index].get_hasse_variables()
+        self.disegna()
+
+    def change_classic(self, event):
+        hasse_index, punto = self.identifica_punto(event.x,event.y)
+        self.hasses[hasse_index].get_hasse_variables(mode = False)
+        self.disegna()
+   
+    def irr_con_poset(self,event):
+        """Funzione di test temporanea per generare soltanto il poset delle congruenze join irriducibili"""
+        hasse_index,punto = self.identifica_punto(event.x, event.y)
+        self.canvas.bind('<Motion>',self.show_con)
+        self.root.bind('<Button-2>', self.applica_con)  
+
+        self.lattice_index = hasse_index
+        self.con_index = len(self.hasses)
+
+        j_irr_con = self.hasses[hasse_index].congruenze_join_irriducibili()
+        j_irr_con.append([i for i in range(len(j_irr_con[0]))]) # aggiungi l'identità
+        j_irr_l = PoSet.from_function(j_irr_con,confronta_blocchi,labels = [str(numero_blocchi(c)) for c in j_irr_con])
+        self.hasses += (j_irr_l,)
+        self.hasses[-1].get_hasse_variables(mode = False)
+
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()
+
+    def compute_step_congruence(self, event):
+        """Calcola lo step dei punti appena sopra ad un reticolo delle congruenze tramite i join irriducibili"""
+        hasse_index,punto = self.identifica_punto(event.x, event.y)
+        irr_ = range(len(self.hasses[hasse_index]))
+        #
+        # è un problema assai interesssante ma identificare le JJ non è così semplice come sembra, per ora terremo tutto, stupido a livello computazionale ma funziona
+        # Paolo del futuro non basta prendere gli elementi che dominano un solo punto 
+        # perchè nella classica struttura a X hai che magari i 4 vertici della X sono join irriducibili
+        # Ma quando prendi quel sottonsimeme di punti non sono più "join irriducibili" nel poset risultante
+        # Caso che mostra come la teoria e astrazione matematica sia più coerente con la realtà delle tue merdose intuizioni
+        # Devi decisamente dormire paolo, hai anche la valigia, il viaggio, la sveglia presto dios
+        new = self.hasses[hasse_index].obj
+        for i in irr_:
+            join_ = unisci_congruenze(self.hasses[hasse_index][i],self.hasses[hasse_index][punto])
+            if join_ not in new:
+                new.append(join_)
+        # SI potrebbe ottimizzare Aggiungnendo fisicamente i punti al poset invece che ricalcolare tutta la matrice, ma per ora non ho una funzione per questo scopo (che cosa stupida effettivamente, decisamente da implementare a bree)
+
+        # Davvero figa come modalità -> da migliorare computazionalmente e graficamente, ma davvero interessante
+        temp = PoSet.from_function(new,confronta_blocchi,labels = [str(numero_blocchi(c)) for c in new])
+        self.hasses = self.hasses[:hasse_index] + (temp,) + self.hasses[hasse_index+1:]
+        self.hasses[hasse_index].get_hasse_variables(mode = False)
+        self.disegna()
+        
+    def identify(self, event):
+        """Identifica il punto in un poset nel poset precedente"""
+        hasse_index,punto = self.identifica_punto(event.x, event.y)
+        nome = self.hasses[hasse_index].obj[punto]
+        if hasse_index == 0:
+            print("Non è possibile identificare un punto in un poset senza Hasse precedente")
+            return
+        if nome not in self.hasses[hasse_index-1].obj:
+            print(f"Il punto {punto,nome} NON è presente presente nel poset precedente")
+            return
+        indice = self.hasses[hasse_index-1].index(nome)
+        self.hasses[hasse_index-1].nodes_color[indice]='lightblue' # Aggiorna l'oggetto del poset precedente con il punto identificato
+        self.disegna()
+        self.show_labels_poset(event)
+
     def show_labels_true(self,event):
         """
         modifica impostazioni etichette: visibili - non visibili
+        # DIVENTERÀ OBSOLETO NON APPENA MI DECIDO A FRAMMENTARE LA FUNZIONE DISEGNA
         """
         self.show_labels = not self.show_labels
         self.disegna()   
@@ -1704,15 +1823,35 @@ class Finestra():
         mostra le etichette di un solo poset (impostazioni globalmente migliorabile)
         """
         hasse_index,punto = self.identifica_punto(event.x, event.y)
+        self.add_labels(hasse_index)
+    
+    def add_labels(self, hasse_index, labels = None, font_size = None, color = 'black', position =(1.5, 2)):  
+        """
+        Aggiunge le etichette ai nodi dell hasse specificato
+        "position" mi permette di posizionare le etichette in modo diverso rispetto al cerchio, 
+        letteralmente quanto spostate a destra e quanto in basso rispetto al cerchio
+        Mi sarà utile quando vorrò implementare l'FCA perchè potrò chiamare due volte questa funzione una volta per extent e l'altra per intent
+        """
+        H = self.hasses[hasse_index]
         row = hasse_index // self.grid[1]
-        col = hasse_index % self.grid[1]
-        for i,(fx,fy) in enumerate(self.hasses[hasse_index].nodes):
+        col = hasse_index % self.grid[1] 
+
+        if not labels:
+            labels = H.labels
+
+        if not font_size:
+            font_size = H.font_size # ? 
+
+        for i,(fx,fy) in enumerate(H.nodes):
             X = (col + fx) * self.W #X del cerchio
             Y = (row +fy) * self.H #Y del cerchio
-            self.canvas.create_text(X,
-                        Y +  self.hasses[-1].r*2 + self.hasses[hasse_index].font_size/2 ,
-                        font=f"Times {self.hasses[hasse_index].font_size}", text=self.hasses[hasse_index].labels[i], fill = 'black')
-            
+
+
+            self.canvas.create_text(X + H.r*position[0],
+                                    Y +  H.r*position[1] + H.font_size/2 ,
+                                    font=f"Times {H.font_size}", text=H.labels[i],
+                                    fill=color)       
+
     def side_dedekind(self, event):
         """
         calcola il completamento di un PoSet
@@ -1725,7 +1864,7 @@ class Finestra():
         self.W = self.shape[0] / self.grid[1]
         self.H = self.shape[1] / self.grid[0]
         self.disegna()
-               
+   
     def resize(self, event):
         """
         resize
@@ -1930,7 +2069,7 @@ class Finestra():
         self.disegna()
         self.last_label_temp(None)
         
-    def side_show_contest_fca(self,evento):
+    def side_show_contest_dedekind(self,evento):
         """
         Genera a lato un sotto poset del poset selezionato. ovvero l'unione dell'upset e del downset di un punto
         Però converte in reticolo
@@ -1938,16 +2077,13 @@ class Finestra():
         hasse,punto = self.identifica_punto(evento.x,evento.y)
         self.hasses[hasse].show_nodes((punto,),'lightgreen')
         T = self.hasses[hasse].sub_poset(self.hasses[hasse].downset(punto) | self.hasses[hasse].upset(punto))
-        A = Lattice.from_fca(T.obj,T.obj,T.domination_matrix)
-        A.get_hasse_variables()
-        A.labels = T.obj
+        A = T.dedekind_completion(nice_labels = True)
         del T
         self.hasses = self.hasses[hasse],A
         self.grid = (1, len(self.hasses))
         self.W = self.shape[0] / self.grid[1]
         self.H = self.shape[1] / self.grid[0]
         self.disegna()
-        self.last_label_temp(None)
         
     def side_dinamic_con(self,evento):
         """
@@ -2021,6 +2157,65 @@ class Finestra():
         self.W = self.shape[0] / self.grid[1]
         self.H = self.shape[1] / self.grid[0]
         self.disegna()        
+
+    def side_upset(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses[hasse].show_nodes((punto,),'lightgreen')
+        A = self.hasses[hasse].sub_poset(self.hasses[hasse].upset(punto))
+        A.get_hasse_variables()
+        self.hasses += (A,)
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()
+
+    def side_downset(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses[hasse].show_nodes((punto,),'lightgreen')
+        A = self.hasses[hasse].sub_poset(self.hasses[hasse].downset(punto))
+        A.get_hasse_variables()
+        self.hasses += (A,)
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()
+
+    def sort_diagram(self,evento):
+        """
+        Funzione che riarrangia i punti di un poset
+        """
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        list(range(len(self.hasses[hasse])))
+        self.hasses[hasse].sort()
+        self.hasses[hasse].get_hasse_variables()
+        self.disegna()
+
+    def random_sort_diagram(self,evento):
+        """
+        Funzione che riarrangia i punti di un poset
+        """
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        lista = list(range(len(self.hasses[hasse])))
+        np.random.shuffle(lista)
+        
+        self.hasses[hasse].domination_matrix = permuta_matrice(self.hasses[hasse].domination_matrix,lista)
+        self.hasses[hasse].cover_matrix = permuta_matrice(self.hasses[hasse].cover_matrix,lista)
+        self.hasses[hasse].obj = [self.hasses[hasse].obj[i] for i in lista]
+
+        self.hasses[hasse].get_hasse_variables()
+        self.disegna()
+
+    def scarta_hasse(self,evento):
+        if len(self.hasses) == 1:
+            return 
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses = tuple([self.hasses[i] for i in range(len(self.hasses)) if i != hasse])
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()
+        
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
