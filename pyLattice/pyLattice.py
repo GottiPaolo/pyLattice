@@ -863,12 +863,25 @@ class PoSet:
         """
         return self.obj.index(elemento)
     
+    def clone(self):
+        """
+        Restituisce una copia del poset, utile per non modificare l'originale
+        """
+        return PoSet(self.domination_matrix.copy(), self.obj.copy())
+
     def __mul__(self,other):
         """
         Moltiplicazione definita da 
         L x W = Q : Q.obj = L.obj x W.obj 
         Q.i <_q Q.j  <==>  Q.i.l <_l Q.j.l <_l and  Q.i.w <_l Q.j.w <_w  
         """
+        if type(other) != PoSet and type(other) != Lattice:
+            if type(other) == int:
+                temp = self.clone()
+                for i in range(other-1):
+                    temp += self
+                return temp
+            
         matrice = np.eye(len(self)*len(other))
         for i in range(len(self)*len(other)):
             for j in range(i+1,len(self)*len(other)):
@@ -969,7 +982,7 @@ class PoSet:
         """
         Restituisce il duale di un reticolo (semplicemente prendendo la trasposta della matrice di dominanze)
         """
-        return PoSet(np.transpose(self.domination_matrix),self.obj,self.labels)
+        return PoSet(np.transpose(self.domination_matrix),self.obj)
     
     def from_function(X,f ,labels = None):
         """
@@ -1035,7 +1048,10 @@ class PoSet:
         
         Potrei ottimizzarlo prendendo un sottoinsieme della matrice di dominanze invece che utilizzando una funzione, ma non è urgnete
         """
-        return PoSet.from_function([self[i] for i in sub_set],lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
+        sub_set_matrix = np.array([[self.domination_matrix[i][j] for j in sub_set] for i in sub_set])
+        #print(sub_set_matrix.shape)
+        return PoSet(sub_set_matrix, [self[i] for i in sub_set])
+        #return PoSet.from_function([self[i] for i in sub_set],lambda x,y: self.domination_matrix[self.obj.index(x)][self.obj.index(y)])
           
     def dedekind_completion_old(self, nice_labels = False):
         """
@@ -1130,20 +1146,39 @@ class PoSet:
         self.labels = [str(i) for i in range(len(self))]
           
     def get_hasse_variables(self,labels = None, radius = 4, font_size = 12, vertex_color = None,
-                            nodes_color = None, stroke_weights = None, mode = True, show_labels = False):
+                            nodes_color = None, stroke_weights = None, mode = 0, show_labels = False):
         """
         Funzione che genera tutte le variabili necessarie per la rappresentazione di Hasse, di base il poset non le possiede
-        mode = True -> i punti vengono piazzati il più in alto possibile, la riga di un punto è appena sotto il più basso di quelli che lo coprono
-        mode = False -> i punti vengono piazzati in modo da essere il in basso possibile: la riga di un punto è appena sopra il più alto di quelli che copre
+        mode = 0 -> i punti vengono piazzati il più in alto possibile, la riga di un punto è appena sotto il più basso di quelli che lo coprono
+        mode = 1 -> i punti vengono piazzati in modo da essere il in basso possibile: la riga di un punto è appena sopra il più alto di quelli che copre
+        mode = 2 -> media tra i due metodi e colonne semi ragionate (migliore solo in casi specifici)
+        mode = 3 -> media tra i due metodi e colonne spontanee (molto errore visuale)
         """
         self.show_labels = show_labels
 
-        if mode:
+        if mode == 0:
             rows = get_righe(self.cover_matrix)
-        else:
+        elif mode == 1:
             rows = get_righe_2(self.cover_matrix)
-        cols = get_colonne(righe = rows)
-        gaps_x = [rows.count(x) ** -1 for x in rows]
+        elif mode == 2 or mode == 3: # Media tra i due metodi
+            rows_1 = get_righe(self.cover_matrix)
+            rows_2 = get_righe_2(self.cover_matrix)
+            rows = [(r1 + r2)/2 for r1,r2 in zip(rows_1,rows_2)]
+
+        
+        if mode == 2:# and False: # Metodo alternativo, migliore ma solo in certi casi specifii
+            cols_1 = get_colonne(righe = rows_1)
+            cols_2 = get_colonne(righe = rows_2)
+            cols = [max(c1, c2) for c1,c2 in zip(cols_1,cols_2)]
+    
+            gaps_x_1 = [rows_1.count(x) ** -1 for x in rows_1]
+            gaps_x_2 = [rows_2.count(x) ** -1 for x in rows_2]
+            gaps_x = [min(g1, g2) for g1,g2 in zip(gaps_x_1,gaps_x_2)]
+
+        else:
+            cols = get_colonne(righe = rows)
+            gaps_x = [rows.count(x) ** -1 for x in rows]
+        
         gap_y = (max(rows)+1) ** -1
         self.nodes = [((c+0.5)*gap_x, (r+0.5)*gap_y) for r,c,gap_x in zip(rows,cols,gaps_x)]
         self.vertex = [(i,j)  for i in range(len(self)) for j in range(i+1,len(self)) if self.cover_matrix[i][j] or self.cover_matrix[j][i]]
@@ -1418,6 +1453,14 @@ class Lattice(PoSet):
         A.as_lattice()
         return A
     
+    def clone(self):
+        """
+        Restituisce una copia del reticolo
+        """
+        A = super().clone()
+        A.__class__ = Lattice
+        return A
+
     #### Esoteric
     def __mul__(self,other):
         A = super().__mul__(other)
@@ -1612,9 +1655,9 @@ class Lattice(PoSet):
         """
         J_ = self.index_join_irriducibili()
         M_ = self.index_meet_irriducibili()
-        self.show_nodes(J_,'yellow')
-        self.show_nodes(M_,'red')
-        self.show_nodes([i for i in J_ if i in M_],'orange') 
+        self.show_nodes(J_,'gold1')
+        self.show_nodes(M_,'firebrick3')
+        self.show_nodes([i for i in J_ if i in M_],'darkorange') 
     
     def dinamic_congruences(self, shape : tuple = (500,500), grid: tuple = None, 
                                  show_labels : bool = False, title = 'PoSet', init = True, 
@@ -1732,8 +1775,13 @@ class Finestra():
         self.root.bind("w", self.random_sort_diagram)
         self.root.bind("z", self.irr_con_poset)
         self.root.bind("1", self.compute_step_congruence)
-        self.root.bind("2", self.return_classic)
-        self.root.bind("3", self.change_classic)
+        self.root.bind("2", self.mode_zero)
+        self.root.bind("3", self.mode_one)
+        self.root.bind("4", self.mode_two)
+        self.root.bind("5", self.mode_three)
+        self.root.bind("<space>", self.stampa_console_nodo)
+        self.root.bind("m", self.hierarchic_cluster) 
+        self.root.bind("v", self.kee_red_dots)
         #self.root.bind("s", self.capture_window)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
@@ -1742,14 +1790,32 @@ class Finestra():
             self.con_index = 1
         self.root.mainloop()
        
-    def return_classic(self, event):
+    def stampa_console_nodo(self, event):
+        """Stampa in console il nodo selezionato"""
+        hasse_index, punto = self.identifica_punto(event.x, event.y)
+        if hasse_index < len(self.hasses):
+            print(f"{self.hasses[hasse_index].obj[punto]}")
+        else:
+            print("Nessun poset selezionato")
+
+    def mode_zero(self, event):
         hasse_index, punto = self.identifica_punto(event.x,event.y)
         self.hasses[hasse_index].get_hasse_variables()
         self.disegna()
 
-    def change_classic(self, event):
+    def mode_one(self, event):
         hasse_index, punto = self.identifica_punto(event.x,event.y)
-        self.hasses[hasse_index].get_hasse_variables(mode = False)
+        self.hasses[hasse_index].get_hasse_variables(mode = 1)
+        self.disegna()
+
+    def mode_two(self, event):
+        hasse_index, punto = self.identifica_punto(event.x,event.y)
+        self.hasses[hasse_index].get_hasse_variables(mode = 2)
+        self.disegna()
+
+    def mode_three(self, event):
+        hasse_index, punto = self.identifica_punto(event.x,event.y)
+        self.hasses[hasse_index].get_hasse_variables(mode = 3)
         self.disegna()
    
     def irr_con_poset(self,event):
@@ -1899,17 +1965,30 @@ class Finestra():
                                             width = 2, fill = H.vertex_color[i]
                         )
             
+
             # Disegna cerchi
             for i,(fx,fy) in enumerate(H.nodes):
                 X = (col + fx) * self.W #X del cerchio
-                Y = (row +fy) * self.H #Y del cerchio
-                self.canvas.create_oval((X - H.r, Y - H.r),
+                Y = (row + fy) * self.H #Y del cerchio
+                if hasattr(H,"radius"):
+                    self.canvas.create_oval((X - H.radius[i], Y -  H.radius[i]),
+                                        (X + H.radius[i], Y + H.radius[i]),
+                                        fill = H.nodes_color[i])
+                
+                
+                else:
+                    self.canvas.create_oval((X - H.r, Y - H.r),
                                         (X + H.r, Y + H.r),
                                         fill = H.nodes_color[i])
                 
             # Aggiungi etichette
                 if H.show_labels:
-                    self.canvas.create_text(X + H.r*1.5,
+                    if hasattr(H,"radius"):
+                        self.canvas.create_text(X + H.radius[i]*1.5,
+                                            Y +  H.radius[i]*2 + H.font_size/2 ,
+                                            font=f"Times {H.font_size}", text=H.labels[i])
+                    else:
+                        self.canvas.create_text(X + H.r*1.5,
                                             Y +  H.r*2 + H.font_size/2 ,
                                             font=f"Times {H.font_size}", text=H.labels[i])
                         
@@ -1973,13 +2052,10 @@ class Finestra():
             self.hasses[self.lattice_index].show_congruence(self.hasses[hasse_index][cerchio_selezionato])
             self.disegna()
  
-    def show_all_irriducible(self, skip):
+    def show_all_irriducible(self, event):
         """clear """
-        for h in self.hasses:
-            try:
-                h.show_irriducible()
-            except AttributeError:
-                pass
+        hasse_index,punto = self.identifica_punto(event.x, event.y)
+        self.hasses[hasse_index].show_irriducible()
         self.disegna()
         
     def reset(self, skip):
@@ -2243,6 +2319,42 @@ class Finestra():
                                             Y +  H.r*2 + H.font_size/2 ,
                                             font=f"Times {H.font_size}", text=H.labels[i])
 
+    def hierarchic_cluster(self,evento):
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        df = DataSet(self.hasses[hasse], [1 if i!= '' else 0 for i in self.hasses[hasse]]) # 0 per i punti ottenuti da dedekind completion
+        gerarchic_cluster = df.gerarchic_cluster()[0]
+        Con_L = df.L.CongruenceLattice()
+        self.hasses += (Con_L,)
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+
+        self.hasses[-1].get_hasse_variables()
+        self.hasses[-1].show_percorso([Con_L.obj.index(x) for x in gerarchic_cluster], 'orange')
+        self.hasses[-1].labels = [round(df.total_separation(DataSet.as_partition(con)),2) for con in Con_L]
+        if True: # normalized
+            max_ = max(self.hasses[-1].labels)
+            self.hasses[-1].labels = [round(n/max_,2) for n in self.hasses[-1].labels]
+
+        self.canvas.bind('<Motion>',self.show_con)
+        self.root.bind('<Button-2>', self.applica_con)
+        self.lattice_index = hasse
+        self.con_index = len(self.hasses) - 1
+        self.disegna()
+
+    def kee_red_dots(self,evento):
+        """
+        Mantiene i punti rossi, ovvero quelli che sono stati selezionati come punti di interesse
+        """
+        hasse,punto = self.identifica_punto(evento.x,evento.y)
+        self.hasses[hasse]
+        new_P = self.hasses[hasse].sub_poset([i for i in range(len(self.hasses[hasse])) if self.hasses[hasse].nodes_color[i] == 'red'])
+        self.hasses += (new_P,)
+        self.hasses[-1].get_hasse_variables()
+        self.grid = (1, len(self.hasses))
+        self.W = self.shape[0] / self.grid[1]
+        self.H = self.shape[1] / self.grid[0]
+        self.disegna()
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -2499,7 +2611,7 @@ class DataSet():
             
         return history_con,separations
         
-    def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation", labels_freq = True, font_size = None):
+    def estetic_rappresentation(self,gerarchic_cluster = None, function_sep = "total_separation", labels_freq = True, font_size = None, Con_L = None):
         """
         Genera una rappresentazione molto estetica del percorso nel reticolo delle congruenze.
         Fattiblie se il dataset è piccolo
@@ -2509,7 +2621,9 @@ class DataSet():
         
         if not gerarchic_cluster:
             gerarchic_cluster = self.gerarchic_cluster(function_sep)[0]
-        Con_L = self.L.CongruenceLattice()
+        if not Con_L:
+            Con_L = self.L.CongruenceLattice()
+
         Con_L.get_hasse_variables()
         Con_L.show_percorso([Con_L.obj.index(x) for x in gerarchic_cluster], 'orange')
         if function_sep ==  "total_separation":
@@ -2657,10 +2771,50 @@ class DataSet():
                         radius[data.index(v)] += self.f[i]
                 L.radius = [temp_radius_f(r) / normalize_costant for r in radius] 
         if not n_rows:
-            Lattice.hasse(*lattices,init=False,shape=(2000,500),grid=(2,len(lattices)//2))
+            Lattice.hasse(*lattices,init=False,shape=(2000,500))
         else:
             Lattice.hasse(*lattices,init=False,shape=(2000,500),grid=(n_rows,len(lattices)//n_rows +(len(lattices)%n_rows != 0) ) )
         return lattices
+    
+    def list_of_quotenti_and_con_relative_path(self, history_con = None, propotion = True, normalize_costant = 1, Con_L = None):
+        if not history_con:
+            history_con, separations = self.gerarchic_cluster()
+        congruences = [Lattice(self.L.domination_matrix) for c in history_con]
+        lattices = [self.L.apply_congruence(c) for c in history_con]
+        for c,L,Q in zip(history_con,congruences,lattices):
+            L.get_hasse_variables()
+            L.show_congruence(c)
+            Q.get_hasse_variables()
+        if propotion:
+            for index,(c,L) in enumerate(zip(history_con, lattices)):
+                """
+                Se ho fatto le  cose bene dovrebbe essere semplice
+                """
+                radius = []
+                data = []
+                for i,v in enumerate(c):
+                    if i == v:
+                        data.append(v)
+                        radius.append(self.f[i])
+                    else:
+                        radius[data.index(v)] += self.f[i]
+                L.radius = [r**0.5 / normalize_costant for r in radius]
+                if index == 0:
+                    for Q in congruences:
+                        Q.radius = L.radius
+            
+        
+        if not Con_L:
+            Con_L = self.L.CongruenceLattice()
+        con_l = [Lattice(Con_L.domination_matrix, Con_L.obj) for _ in history_con]
+        for i,C in enumerate(con_l):
+            C.get_hasse_variables()
+            C.show_percorso([C.obj.index(x) for x in history_con[:i+1]], 'orange')
+            C.show_nodes([history_con[i]], as_index = False, color = 'lightblue')
+        
+        
+        Lattice.hasse(*(lattices+congruences+con_l), show_labels=False,grid= (3,len(history_con)),init= False, shape=(2000,700))
+        
                           
 class CWDataSet(DataSet):
     
