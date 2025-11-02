@@ -1782,6 +1782,8 @@ class Finestra():
         self.root.bind("<space>", self.stampa_console_nodo)
         self.root.bind("m", self.hierarchic_cluster) 
         self.root.bind("v", self.kee_red_dots)
+        self.root.bind("o", self.print_domination_matrix)
+        # self.root.bind("",self.print_)
         #self.root.bind("s", self.capture_window)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
@@ -1790,6 +1792,20 @@ class Finestra():
             self.con_index = 1
         self.root.mainloop()
        
+    def print_domination_matrix(self, event):
+        """
+        Stampa in console la matrice di dominazione del poset selezionato
+        """
+        hasse_index, punto = self.identifica_punto(event.x, event.y)
+        if hasse_index < len(self.hasses):
+            matrice = self.hasses[hasse_index].domination_matrix
+            print("[")
+            for riga in matrice:
+                print("[" + " ,".join(str(x) for x in riga) + "],")
+            print("]")
+        else:
+            print("Nessun poset selezionato")
+
     def stampa_console_nodo(self, event):
         """Stampa in console il nodo selezionato"""
         hasse_index, punto = self.identifica_punto(event.x, event.y)
@@ -3133,4 +3149,21 @@ SFIDE FUTURE
         Perchè mantenere l'omogeneità tra tutti i possibili poset fissata la dimensione penso sia un problema di dimensioni incredibili
         Però generarne alcuni casuali per fare dei test è un qualcosa che mi serve spesso, ed ho implementato spesso in separata sede, non capisco perchè non dovrei inserirlo qua
         (tempo che ho scritto il paragrafo avrei potuto implementarlo)
+"""
+"""Smart wrapper to handle index and object access (to test )
+def index_wrapper(func):
+    def wrapper(self, *args, from_index=False, as_index=True, **kwargs):
+        if not from_index:
+            args = [self.obj.index(x) for x in args]
+        result = func(self, *args, **kwargs)
+        if as_index:
+            return result
+        return [self.obj[i] for i in result] if isinstance(result, (list, set)) else self.obj[result]
+    return wrapper
+
+class PoSet:
+    @index_wrapper
+    def upset(self, *args):
+        # Implementation using indices
+        ...
 """

@@ -16,7 +16,7 @@ def count_unique(con):
 #                           congruence_lattice =C, shape = (800,800), show_labels= True, font_size= 15)
 # pene
 
-mostra_grafici = False
+mostra_grafici = True
 ## Construct a PoSet
 
 ### From a domination matrix
@@ -114,7 +114,8 @@ domination_matrix= [[1, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0],
 P = pl.PoSet(domination_matrix)
 L = P.dedekind_completion(nice_labels=True)
 if mostra_grafici:
-    pl.Lattice.hasse(P,L, show_labels = True)
+    P.get_hasse_variables(radius = 3, font_size=12)
+    pl.Lattice.hasse(P,L, show_labels = True, init = False)
 
 # Lattice
 ## powersets
@@ -162,7 +163,7 @@ if mostra_grafici:
     L.hasse(L.CongruenceLattice(),shape = (500,250))
 
 if mostra_grafici:
-    L.dinamic_congruences(shape=(1400,700))
+    L.dinamic_congruences(shape=(700,350))
     
 
 ### DataSet
@@ -220,4 +221,5 @@ if mostra_grafici:
     pl.Lattice.hasse(*hasses[1:],show_labels=True, shape = (1200,900), 
                  grid = (4,3), title = 'All', init = False)
     
-D.list_of_quotient_relative_con(normalize_costant=0.2, temp_radius_f=lambda x: x**0.5, n_rows=1,)
+if mostra_grafici:
+    D.list_of_quotient_relative_con(normalize_costant=0.2, temp_radius_f=lambda x: x**0.5, n_rows=1,)
