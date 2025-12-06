@@ -1241,6 +1241,7 @@ class PoSet:
     def show_congruence(self, con, color = 'red'):
         """
         Evidenzia una congruenza
+        MI spiega paolo, dioschifo perchè show_congruence è sotto poset e non sotto lattice?..
         """
         self.vertex_color = [color if con[a] == con[b] else 'black' for a,b in self.vertex]
         
@@ -1583,6 +1584,49 @@ class Lattice(PoSet):
                                 cambiamenti = True
         return blocchi
     
+    def congruenze_minimali(self):
+        """
+        Chiamo congruenze minimlai quelle che uniscono due blocchi adiacenti (a prec b) 
+        tali che non esista un c diverso da b tale che a prec c od un c diverso da a tale che c prec b.
+        Queste congruenze sono un sottoinsieme delle congruenze elementari ed hanno la peculiarità di NON propagare altre unioni
+        """
+        n = self.cover_matrix.shape[0]
+
+        # 1) Righe con un solo 1
+        row_sums = self.cover_matrix.sum(axis=1)
+        rows = np.where(row_sums == 1)[0]
+
+        # 2) Per ciascuna riga selezionata troviamo l'unica colonna dove c'è 1
+        cols = self.cover_matrix[rows].argmax(axis=1)
+
+        # 3) Colonne con un solo 1 (serve per garantire condizione simmetrica)
+        col_sums = self.cover_matrix.sum(axis=0)
+
+        minimal_congruences = []
+        for i, j in zip(rows, cols):
+            if col_sums[j] == 1:        # controlla condizione sulla colonna
+                # Crea lista base [0, 1, 2, ..., n-1]
+                lista = list(range(n))
+
+                a, b = min(i, j), max(i, j)
+                lista[b] = int(a)
+
+                minimal_congruences.append(lista)
+
+        return minimal_congruences
+    
+    def join_congruenze_minimali(self):
+        """
+        Restituisce il join di tutte le congruenze minimali
+
+        Lo posso rendere sicuramente più efficiente...
+        """
+        minimal_congruences = self.congruenze_minimali()
+        c = minimal_congruences[0]
+        for cong in minimal_congruences[1:]:
+            c = unisci_congruenze(c, cong)
+        return c
+    
     def congruenze_elementari(self):
         """UFFICIALMENTE DEPRECATO --> calcolo direttamente quelle join irriducibili
         Deprecato perchè ho ristretto ancora l'insieme delle congruenze necessarie alle congruenze join_irriducibili!
@@ -1784,7 +1828,7 @@ class Finestra():
         self.root.bind("v", self.kee_red_dots)
         self.root.bind("o", self.print_domination_matrix)
         # self.root.bind("",self.print_)
-        #self.root.bind("s", self.capture_window)
+        self.root.bind("s", self.save)
         if dinamic_con:
             self.canvas.bind('<Motion>',self.show_con)
             self.root.bind('<Button-2>', self.applica_con)
@@ -2371,6 +2415,7 @@ class Finestra():
         self.W = self.shape[0] / self.grid[1]
         self.H = self.shape[1] / self.grid[0]
         self.disegna()
+
 # DataSet annd cluster class
 class DataSet():
     def __init__(self, Lat:Lattice, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None):
@@ -2830,8 +2875,7 @@ class DataSet():
         
         
         Lattice.hasse(*(lattices+congruences+con_l), show_labels=False,grid= (3,len(history_con)),init= False, shape=(2000,700))
-        
-                          
+                                  
 class CWDataSet(DataSet):
     
     def __init__(self, cw, freq, fuzzy_domination_function = 'BrueggemannLerche', t_norm_function = 'prod', t_conorm_function = None, LLEs_separation = False):
