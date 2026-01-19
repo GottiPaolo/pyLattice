@@ -921,17 +921,9 @@ class PoSet:
     
     def __sub__(self,other):
         """
-        FOTTUTAMENTE BUGGATO, l'idea è bellisima ma così non funziona ancora,
-        P1 = PoSet.from_function(list(range(1, 21)), lambda a, b: a % b == 0)
-        P2 = PoSet.from_function(list(range(1, 40, 2)), lambda a,b: a % b == 0)
-        P3 = P1 - P2 
-        Questo un esempio dove P3 non ha fottutamente senso, il che è un vero peccato, perchè per molte cose è davvero uno
-
-        # Wait wait wait np.where(self.domination_matrix-other.domination_matrix > 0,1,0
-        # ha senso questa cosa, in realtà credo di si
+        Coerente con -P = dual(P) abbiamo che Q - P = Q + dula(P)
         """
-        assert len(self) == len(other)
-        return PoSet(np.where(self.domination_matrix-other.domination_matrix > 0,1,0) + np.eye(len(self)),self.obj) # VA TESTATO
+        return self + other.dual()
 
     def __or__(self, other):
         """
@@ -1589,6 +1581,7 @@ class Lattice(PoSet):
         Chiamo congruenze minimlai quelle che uniscono due blocchi adiacenti (a prec b) 
         tali che non esista un c diverso da b tale che a prec c od un c diverso da a tale che c prec b.
         Queste congruenze sono un sottoinsieme delle congruenze elementari ed hanno la peculiarità di NON propagare altre unioni
+        Utili per leggere meglio un reticolo che ha solo funzione di schema (e forse altro)
         """
         n = self.cover_matrix.shape[0]
 
