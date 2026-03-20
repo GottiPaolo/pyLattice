@@ -2,6 +2,8 @@
 
 pyLattice is a Python library designed to manage Lattices and Partially Ordered Sets (PoSets). It provides tools for creating, manipulating, and visualizing these algebraic structures.
 
+> If you are interested in this topic and the application in statistics and cluster analysis you can read our paper: [Hierarchical Clustering of Multidimensional Ordinal Data](https://link.springer.com/chapter/10.1007/978-3-031-95995-0_35) or can contact me at paolo.gotti@studenti.unipd.it.
+
 ## Table of Contents
 - [Introduction](#introduction)
 - [PoSet](#poset)
